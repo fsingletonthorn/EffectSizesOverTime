@@ -24,38 +24,26 @@ data <- read_csv2(file = "data/150211FullFile_AllStatcheckData_Automatic1Tail.cs
  includedJournals <- c("DP", "FP", "JAP", "JCCP", "JEPG", "JPSP",  "PS")
 
 dat <- data[data$journals.jour. %in% includedJournals,]
-
+names(dat)[18] <- "journal"
+names(dat)[19] <- "year"
 ```
 
 
-This dataset includes `r nrow(data)` statistical test results which were  reported in APA style from a total of `r length(unique(data$Source))` articles. The current analysis only uses a subset of these studies, those for which {Nuijten, 2015 #550} extracted results going back to 1985. This analysis therfore includes data from six psychology journals chosen to be representative of the main subdisiplines of psychology reserach; Journal of Applied Psychology (JAP; Applied Psychology), Journal of Consulting and Clinical Psychology (JCCP; Clinical Psychology) , Developmental Psychology (DP; Developmental Psychology), Journal of Experimental Psychology: General (JEPG; Experimental Psychology), and Journal of Personality and Social Psychology (JPSP; Social Psychology). The excluded Journals (PLOS, Psychological Science, Frontiers in Psychology) have only began to be published in the last 15 years, which was not considered long enough to begin to look for trends in reported effect sizes over time. The included subset includes a total of `r nrow(dat)` statistical test results from a total of `r length(unique(dat$Source))` articles published from 1985 to 2013.
+This dataset includes `r nrow(data)` statistical test results which were reported in APA style from a total of `r length(unique(data$Source))` articles. The current analysis only uses a subset of these studies, those for which {Nuijten, 2015 #550} extracted results going back to 1985. This analysis therfore includes data from six psychology journals chosen to be representative of the main subdisiplines of psychology reserach; Journal of Applied Psychology (JAP; Applied Psychology), Journal of Consulting and Clinical Psychology (JCCP; Clinical Psychology) , Developmental Psychology (DP; Developmental Psychology), Journal of Experimental Psychology: General (JEPG; Experimental Psychology), and Journal of Personality and Social Psychology (JPSP; Social Psychology). The excluded Journals (PLOS, Psychological Science, Frontiers in Psychology) have only began to be published in the last 15 years, which was not considered long enough to begin to look for trends in reported effect sizes over time. The included subset includes a total of `r nrow(dat)` statistical test results from a total of `r length(unique(dat$Source))` articles published from 1985 to 2013.
 
-All test statistics are be converted to $\omega^2_p$ (partial omega squared, or to adjusted $R^2$ for original results which were correlation coefficents). 
+All test statistics were converted to Fisher Z transformed correlation coefficents following {Open Science Collaboration, 2015 #611} for visulisation and analysis. Negative effect sizes (i.e., negative correlations) were set to be positive for ease of analysis and visulisation. Because typical APA notation for z tests does not report the included sample size in a standardised formal, Z scores were excluded from analyses (n = `r sum(dat$Statistic=="Z")`). As it was not possible to derrive valid standard errors for F statistics with error degrees of freedom above 1 or for Chi square statistics (n = `r sum(dat$Statistic=="Chi2" | (dat$Statistic=="F"& dat$df2 > 2) )`), these analyses were excluded from the multilevel meta-analysis, but are included in visulisations. For other tests, standard errors were estimated as $\sqrt{1/(n - 3)}$, taking the degrees of freedom for the denominator minus two as n (or just the degrees of freedom minus two in the case of correlations and t tests). Including the excluded tests in these analysis (and estimating the standard error as a above) led to *[no differences / describe difference.]*. 
 
-$\omega^2=\frac{SS_{effect}-df_{effect}MS_{error}}{SS_{total}+MS_{error}}$
-{Maxwell, 1981 #943}
+It is also worth noting that in ANOVA designs where there is more than one factor included (or equivalent regression analyses), this conversion leads to the exclusion of any non-focal variables' variance from the denominator. This means that a study which includes a variable as a covariate will lead to a larger observed effect size than a study which does not include the covariate, although the amount of variance explained by the focal variable remains constant {Olejnik, 2003 #933}. 
 
-Which can be derrived from F statistics as 
+Finally, there is no way of verifying that all of the statistical tests reported in the current study are not, for example, manipulation tests or randomisation tests. Any observed change in effect sizes could be driven by changes in reporting practices, for example becoming more or less likely to report manipulation checks or randomisation checks. In order to account for this issue, a number of methods were used to attempt to identify the focal test of each article. (a) The analyses were performed looking just at the first statistical test reported in each paper. (b) The anlayses were performed looking just at the largest effect size seen in each paper. *???* Neither of these methods is perfect, but both are intended to look at the 
 
-$\omega_p^2=\frac{F-1}{F+\frac{df_{error}+1}{df_{effect}}}$
+... Nonetheless, the current anlayis is the first example of a study which has attempted to examine how effects change across fields of psychological reserach over time. 
 
-{Albers, 2018 #942}
 
-Where F is equal to the observed F statistic. For t tests, F is set as $t^2$ and $df_{effect}$ is set to be equal to 1.
+## Analysis 
+Standard errors were estimated as $\sqrt{1/(n - 3)}$.
 
-Adjusted R squred is calculated as: 
 
-${\bar{R}}^2=1-\left(1-r^2\right)\frac{n-1}{n-2}$
-
-{Miles, 2004 #932}
-
-Where r is the observed correlation coefficent, and n is equal to the sample size. Both effect sizes, $\bar{R}}^2$ and $\omega^2_p$ and are bias adjusted estiamtes of the proportion of variance explained, with $\omega^2_p$ excluding variance explained by other variables included in a statistical model (and $\bar{R}}^2$ is only used for correlation coefficents, where it is assumed that no other variables have been partialled out). 
-
-Although $\omega^2_p$ is an unusual effect size for t tests where Cohen's d might be more easily interpretable, the calculation of $\omega^2_p$ does not require one to identify whether the design was repeated measures or independent samples, which is necessary to calculate Cohen's d from test statistics {Cohen, 1988 #562}. Chi square statistics and Z scores will be excluded from analysis beacuse there is not enough information avaliable to extract these effects from the published literature. 
-
-In ANOVA designs where there is more than one factor included, $\omega^2_p$ leads to the exlusion of any non-focal variables' variance from the denominoator. This means that a study which includes a variable as a covariate will lead to a larger observed effect size than a study which does not include the covariate, although the amount of variance explained by the focal variable remians constant {Olejnik, 2003 #933}. For this reason, it would be better to estimate generalised eta squared {Olejnik, 2003 #933}, however the inforamtion required for this effect size statistic is not avaliable in this dataset and is rarely reported. 
-
-Finally, it is worth noting that there is no way of verifying that all of the statistical tests reported in the current study are not, for example, manipulation tests or randomisation tests. Any observed change in effect sizes could be driven by changes in reporting practices, for example becoming more likely to report manipulation checks or randomisation checks. ... Nonetheless, the current anlayis is the first example of a study which has attempted to examine how effects change across fields of psychological reserach over time. 
 
 
 ```{r data cleaning}
@@ -95,26 +83,23 @@ esComp <- function(x,df1,df2,esType) {
   return(esComp)
 }
 
-dat$omegaSqr <- esComp(x = dat$Value, df1 = dat$df1, df2 =  dat$df2, esType = dat$Statistic)
+# calculating pseudo correlation coefficent
+dat$r <- esComp(x = dat$Value, df1 = dat$df1, df2 =  dat$df2, esType = dat$Statistic)
+
+# transforming to fisher's z
+dat$z <- 0.5*log((1 + dat$r) / (1 - dat$r)) 
+
+# Standard error for z (sample size taken as df2 - 2, se as sqrt(1/(sampleSize-3))
+dat$SEz <- sqrt(1/(dat$df2 - 5))
+
+# Binary for valid standard error
+dat$vaidSE <- !(dat$Statistic=="Chi2" | (dat$Statistic=="F"& dat$df2 > 2) | (dat$Statistic == "Z"))
 
 dat$omegaSqr <- ifelse(dat$Statistic== "F", FToOmega(dat$Value, dat$df1, dat$df2), NA)
 dat$omegaSqr <- ifelse(dat$Statistic== "t", tToOmega(dat$Value, dat$df2), dat$omegaSqr)
 dat$omegaSqr <- ifelse(dat$Statistic== "t", tToOmega(dat$Value, dat$df2), dat$omegaSqr)
 dat$omegaSqr <- ifelse(dat$Statistic== "r", adjustedRSqr(dat$Value, dat$df2), dat$omegaSqr)
 
-
-dat$correlation <-
-  
-  
-
-
-
-
-
-
-
-
-## I WILL PROBABLY HAVE TO CONVERT THIS TO A PARTIAL CORRELATION 
 
 ```
 
@@ -126,8 +111,43 @@ dat$correlation <-
 ```{r data analaysis}
 library(metafor)
 
+datMeta <- dat[dat$vaidSE,]
+
+rma.mv(z, V = SEz^2, data = datMeta)
+
+dat$z
+random = (X1 | Source | journal)
 
 ```
+
+
+## Appendix 
+
+### Conversion 
+All statistical tests extracted were transformed into correlation coefficents using the methods reported in {Open Science Collaboration, 2015 #611}. 
+
+t statistics were converted using:
+
+$r\ =\ \sqrt{\frac{t_{obs}^2\times(1 / df)}{(t_{obs}^2 / df) + 1}}$
+
+Where $t_{obs}$ is the observed t statistic and $df$ is the degrees of freedom of the t test. 
+
+F statistics were converted using:
+$r\  =\ \sqrt{\frac{F_{obs}\times(df_1 / df_2)}{((F_{obs} \times df_1) / df_2) + 1}}*\sqrt{\frac{1}{df_1}}$
+
+Where $F_{obs}$ is the observed F statistic and $df_1$ is the degrees of freedom of the numerator and $df_2$ is degrees of freedon of the denominator.  
+
+And chi square statistics as
+$r\ =\ \sqrt{\frac{\chi_{obs}}{df + 2}}$
+
+
+All values were then transformed into fisher Z transformed correlation coefficents using:
+$z = \frac 12 \times \ln(\frac{1 + r}{1 - r})$
+
+And standard errors for these statistics when derrived from F tests with denominator degrees of freedom of 1, t tests, and correlation coefficents were estimated as:
+
+$\sigma_\bar{z} = \frac{1}{\sqrt{n - 3}}$ 
+
 
 
 
