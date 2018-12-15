@@ -1,0 +1,134 @@
+---
+title: "Effect Sizes Over Time"
+author: "Felix Singleton Thorn"
+date: "10 December 2018"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Method
+
+We downloaded the data was that was used in {Nuijten, 2015 #550}, a study examining the number of errors in statistical tests reported in psychology articles (all data from https://osf.io/gdr4q/).  
+
+```{r data import}
+# importing the data
+library(readr)
+data <- read_csv2(file = "data/150211FullFile_AllStatcheckData_Automatic1Tail.csv")
+
+# exluding all articles where the articles are not appliable (i.e., samples don't go back to 1985)
+
+ includedJournals <- c("DP", "FP", "JAP", "JCCP", "JEPG", "JPSP",  "PS")
+
+dat <- data[data$journals.jour. %in% includedJournals,]
+
+```
+
+
+This dataset includes `r nrow(data)` statistical test results which were  reported in APA style from a total of `r length(unique(data$Source))` articles. The current analysis only uses a subset of these studies, those for which {Nuijten, 2015 #550} extracted results going back to 1985. This analysis therfore includes data from six psychology journals chosen to be representative of the main subdisiplines of psychology reserach; Journal of Applied Psychology (JAP; Applied Psychology), Journal of Consulting and Clinical Psychology (JCCP; Clinical Psychology) , Developmental Psychology (DP; Developmental Psychology), Journal of Experimental Psychology: General (JEPG; Experimental Psychology), and Journal of Personality and Social Psychology (JPSP; Social Psychology). The excluded Journals (PLOS, Psychological Science, Frontiers in Psychology) have only began to be published in the last 15 years, which was not considered long enough to begin to look for trends in reported effect sizes over time. The included subset includes a total of `r nrow(dat)` statistical test results from a total of `r length(unique(dat$Source))` articles published from 1985 to 2013.
+
+All test statistics are be converted to $\omega^2_p$ (partial omega squared, or to adjusted $R^2$ for original results which were correlation coefficents). 
+
+$\omega^2=\frac{SS_{effect}-df_{effect}MS_{error}}{SS_{total}+MS_{error}}$
+{Maxwell, 1981 #943}
+
+Which can be derrived from F statistics as 
+
+$\omega_p^2=\frac{F-1}{F+\frac{df_{error}+1}{df_{effect}}}$
+
+{Albers, 2018 #942}
+
+Where F is equal to the observed F statistic. For t tests, F is set as $t^2$ and $df_{effect}$ is set to be equal to 1.
+
+Adjusted R squred is calculated as: 
+
+${\bar{R}}^2=1-\left(1-r^2\right)\frac{n-1}{n-2}$
+
+{Miles, 2004 #932}
+
+Where r is the observed correlation coefficent, and n is equal to the sample size. Both effect sizes, $\bar{R}}^2$ and $\omega^2_p$ and are bias adjusted estiamtes of the proportion of variance explained, with $\omega^2_p$ excluding variance explained by other variables included in a statistical model (and $\bar{R}}^2$ is only used for correlation coefficents, where it is assumed that no other variables have been partialled out). 
+
+Although $\omega^2_p$ is an unusual effect size for t tests where Cohen's d might be more easily interpretable, the calculation of $\omega^2_p$ does not require one to identify whether the design was repeated measures or independent samples, which is necessary to calculate Cohen's d from test statistics {Cohen, 1988 #562}. Chi square statistics and Z scores will be excluded from analysis beacuse there is not enough information avaliable to extract these effects from the published literature. 
+
+In ANOVA designs where there is more than one factor included, $\omega^2_p$ leads to the exlusion of any non-focal variables' variance from the denominoator. This means that a study which includes a variable as a covariate will lead to a larger observed effect size than a study which does not include the covariate, although the amount of variance explained by the focal variable remians constant {Olejnik, 2003 #933}. For this reason, it would be better to estimate generalised eta squared {Olejnik, 2003 #933}, however the inforamtion required for this effect size statistic is not avaliable in this dataset and is rarely reported. 
+
+Finally, it is worth noting that there is no way of verifying that all of the statistical tests reported in the current study are not, for example, manipulation tests or randomisation tests. Any observed change in effect sizes could be driven by changes in reporting practices, for example becoming more likely to report manipulation checks or randomisation checks. ... Nonetheless, the current anlayis is the first example of a study which has attempted to examine how effects change across fields of psychological reserach over time. 
+
+
+```{r data cleaning}
+ # Setting seed for reproducibility
+set.seed(14122018)
+
+# Extracting test subset
+dat<-dat[runif(n = nrow(dat)/1000, min = 0, max = nrow(dat)),]
+# rm("data") 
+
+
+# Setting up functions to extract omega squared from functions
+FToOmega <- function(FStat, df1, df2) {
+  omegaSqr <- ( FStat - 1 ) / ( FStat + ( (df2 + 1) / df1 ) )
+}
+
+# Extracting from t stats
+tToOmega <- function(tStat, df) {
+  FStat <- tStat^2
+  df1 <- 1
+  df2 <- df
+  omegaSqr <- ( FStat - 1 ) / ( FStat + ( (df2 + 1) / df1 ) )  
+}
+
+# adjusted R square
+adjustedRSqr <- function(r, df) {
+  1 - (1 - r^2)*( (df + 1) / df )
+}
+
+# Adapted from https://osf.io/z7aux/
+esComp <- function(x,df1,df2,esType) {
+  esComp <- ifelse(esType=="t",sqrt((x^2*(1 / df2)) / (((x^2*1) / df2) + 1)), 
+                  ifelse(esType=="F",sqrt((x*(df1 / df2)) / (((x*df1) / df2) + 1))*sqrt(1/df1),
+                         ifelse(esType=="r",x,
+                                ifelse(esType=="Chi2",sqrt(x/(df2 + 2)),
+                                                     ifelse(esType == "Z",NA,NA)))))
+  return(esComp)
+}
+
+dat$omegaSqr <- esComp(x = dat$Value, df1 = dat$df1, df2 =  dat$df2, esType = dat$Statistic)
+
+dat$omegaSqr <- ifelse(dat$Statistic== "F", FToOmega(dat$Value, dat$df1, dat$df2), NA)
+dat$omegaSqr <- ifelse(dat$Statistic== "t", tToOmega(dat$Value, dat$df2), dat$omegaSqr)
+dat$omegaSqr <- ifelse(dat$Statistic== "t", tToOmega(dat$Value, dat$df2), dat$omegaSqr)
+dat$omegaSqr <- ifelse(dat$Statistic== "r", adjustedRSqr(dat$Value, dat$df2), dat$omegaSqr)
+
+
+dat$correlation <-
+  
+  
+
+
+
+
+
+
+
+
+## I WILL PROBABLY HAVE TO CONVERT THIS TO A PARTIAL CORRELATION 
+
+```
+
+
+### Analysis
+
+
+
+```{r data analaysis}
+library(metafor)
+
+
+```
+
+
+
+
