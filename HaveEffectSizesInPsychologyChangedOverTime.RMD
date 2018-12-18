@@ -28,6 +28,8 @@ names(dat)[18] <- "journal"
 names(dat)[19] <- "year"
 names(dat)[1] <- "id"
 names(dat)[2] <- "article"
+
+library
 ```
 
 
@@ -56,7 +58,7 @@ Finally, there is no way of verifying that all of the statistical tests reported
 # dat<-dat[runif(n = nrow(dat)/1000, min = 0, max = nrow(dat)),] # Remove for main analysis
 # rm("data") 
 
-# Adapted from https://osf.io/z7aux/
+# Adapted from https://osf.io/z7aux/ # effect size transformation 
 esComp <- function(x,df1,df2,esType) {
   esComp <- ifelse(esType=="t",sqrt((x^2*(1 / df2)) / (((x^2*1) / df2) + 1)), 
                   ifelse(esType=="F",sqrt((x*(df1 / df2)) / (((x*df1) / df2) + 1))*sqrt(1/df1),
@@ -66,7 +68,7 @@ esComp <- function(x,df1,df2,esType) {
   return(esComp)
 }
 
-# calculating pseudo correlation coefficent
+# calculating pseudo correlation coefficents
 dat$r <- esComp(x = dat$Value, df1 = dat$df1, df2 =  dat$df2, esType = dat$Statistic)
 
 # setting to positive
@@ -95,7 +97,12 @@ library(metafor); library(tidyverse)
 
 datMeta <- filter(dat, dat$vaidSE)
 
-mod <- rma.mv(z, V = SEz^2, random = ~  factor(article) | journal, mods = (year - mean(year)), data = datMeta, sparse=TRUE)
+mod <- rma.mv(z, V = SEz^2, random = ~  factor(article) | journal, mods = (year - mean(year)), data = datMeta[sample(1:nrow(datMeta), size = 1000, replace = F),])
+
+
+# All data analysis
+datComplete <- dat[!is.na(dat$z)& !(dat$z == Inf) &!is.na(dat$SEz) & !(dat$SEz == Inf),]
+modAll <- rma.mv(z, V = SEz^2, random = ~  factor(article) | journal, mods = (year - mean(year)), data = datComplete[sample(1:nrow(datComplete), size = 1000, replace = F),])
 
 ranef(mod)
 ```
@@ -110,6 +117,8 @@ datMetaLargest <- dat %>%
 
 modLargest <- rma.mv(z, V = SEz^2, random = ~ 1 | journal, mods = (year - mean(year)), data = datMetaLargest)
 
+modLargest <- rma.mv(z, V = SEz^2, random = ~ 1 | journal, mods = (year - mean(year)), data = datMetaLargest[sample(1:nrow(datMetaLargest), size = 1000, replace = F),])
+
 ranef(modLargest)
 ```
 
@@ -120,11 +129,14 @@ datMetaFirst <- dat %>%
   group_by(article) %>%
   slice(1)
 
-modFirst <- rma.mv(z, V = SEz^2, random = ~  1 | journal, mods = (year - mean(year)), data = datMetaFirst)
-
+modFirst <- rma.mv(z, V = SEz^2, random = ~  1 | journal, mods = (year - mean(year)), data = datMetaFirst[sample(1:nrow(datMetaFirst), size = 1000, replace = F),])
 
 ranef(modFirst)
 ```
+
+## Results 
+
+This analysis shows that there has been effectivly no change in the average effect sizes reported in these journals over time, with an estimated decrease per year of `r mod$b[2]` (using all data) in Fisher z score units. This corresponds to a correlation coefficent change per year of just `r transf.ztor(mod$b[2])`. The two models using the first reported statistical test and the largest statistical test in each article argree, showing a negligable decrease over time. 
 
 
 ## Appendix 
@@ -156,4 +168,33 @@ $\sigma_\bar{z} = \frac{1}{\sqrt{n - 3}}$
 #### Diagnostics 
 
 profile(rma.mv(z, V = SEz^2, random = ~  factor(article) | journal, mods = year, data = datMeta))
+
+
+```{r plots}
+
+ggplot(data = datMeta, aes(y = z, x = year, group = year))+ geom_boxplot(alpha = .1) 
+
+ggplot(data = datMetaLargest, aes(y = z, x = year, group = year))+ geom_boxplot() 
+
+plot(datMeta %>% 
+  group_by(year) %>%
+  summarise(mean_z = mean(z)))
+
+plot(dat %>% 
+  group_by(year) %>%
+  summarise(mean_z = mean(z, na.rm = T)))
+
+plot(datMetaLargest %>% 
+  group_by(year) %>%
+  summarise(mean_z = mean(z)))
+
+plot(datMetaLargest %>% 
+  group_by(year) %>%
+  summarise(median_z = median(z)))
+
+plot(datMetaFirst %>% 
+  group_by(year) %>%
+  summarise(mean_z = mean(z)))
+
+```
 
