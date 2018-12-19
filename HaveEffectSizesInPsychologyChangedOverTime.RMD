@@ -29,7 +29,7 @@ names(dat)[19] <- "year"
 names(dat)[1] <- "id"
 names(dat)[2] <- "article"
 
-library
+
 ```
 
 
@@ -97,12 +97,13 @@ library(metafor); library(tidyverse)
 
 datMeta <- filter(dat, dat$vaidSE)
 
-mod <- rma.mv(z, V = SEz^2, random = ~  factor(article) | journal, mods = (year - mean(year)), data = datMeta[sample(1:nrow(datMeta), size = 1000, replace = F),])
+mod <- rma.mv(z, V = SEz^2, random = ~  1 | journal / factor(article), mods = year, data = datMeta[sample(1:nrow(datMeta), size = 1000, replace = F),])
+
 
 
 # All data analysis
 datComplete <- dat[!is.na(dat$z)& !(dat$z == Inf) &!is.na(dat$SEz) & !(dat$SEz == Inf),]
-modAll <- rma.mv(z, V = SEz^2, random = ~  factor(article) | journal, mods = (year - mean(year)), data = datComplete[sample(1:nrow(datComplete), size = 1000, replace = F),])
+modAll <- rma.mv(z, V = SEz^2, random = ~  1 | journal / factor(article), mods = year, data = datComplete[sample(1:nrow(datComplete), size = 1000, replace = F),])
 
 ranef(mod)
 ```
@@ -115,9 +116,9 @@ datMetaLargest <- dat %>%
   group_by(article) %>%
   filter(z == max(z))
 
-modLargest <- rma.mv(z, V = SEz^2, random = ~ 1 | journal, mods = (year - mean(year)), data = datMetaLargest)
+# modLargest <- rma.mv(z, V = SEz^2, random = ~ 1 | journal, mods = (year - mean(year)), data = datMetaLargest)
 
-modLargest <- rma.mv(z, V = SEz^2, random = ~ 1 | journal, mods = (year - mean(year)), data = datMetaLargest[sample(1:nrow(datMetaLargest), size = 1000, replace = F),])
+modLargest <- rma.mv(z, V = SEz^2, random = ~ 1 | journal / article, mods = (year - mean(year)), data = datMetaLargest[sample(1:nrow(datMetaLargest), size = 1000, replace = F),])
 
 ranef(modLargest)
 ```
