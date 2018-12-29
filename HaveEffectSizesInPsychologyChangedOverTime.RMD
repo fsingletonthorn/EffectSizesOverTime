@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Method
 
-We downloaded the data was that was used in {Nuijten, 2015 #550}, a study examining the number of errors in statistical tests reported in psychology articles (all data from https://osf.io/gdr4q/).  
+This analysis details a reanalysis of the dataset used in {Nuijten, 2015 #550}, a study examining the number of errors in statistical tests reported in psychology articles (all data from https://osf.io/gdr4q/).  
 
 ```{r data import}
 # importing the data
@@ -20,7 +20,7 @@ library(readr)
 data <- read_csv2(file = "data/150211FullFile_AllStatcheckData_Automatic1Tail.csv")
 
 # exluding all articles where the articles are not appliable (i.e., samples don't go back to 1985)
-includedJournals <- c("DP", "FP", "JAP", "JCCP", "JEPG", "JPSP",  "PS")
+includedJournals <- c("DP", "FP", "JAP", "JCCP", "JEPG", "JPSP")
 dat <- data[data$journals.jour. %in% includedJournals,]
 
 # Renamming for clarity
@@ -29,34 +29,11 @@ names(dat)[19] <- "year"
 names(dat)[1] <- "id"
 names(dat)[2] <- "article"
 
-
 ```
-
-
-This dataset includes `r nrow(data)` statistical test results which were reported in APA style from a total of `r length(unique(data$Source))` articles. The current analysis only uses a subset of these studies, those for which {Nuijten, 2015 #550} extracted results going back to 1985. This analysis therfore includes data from six psychology journals chosen to be representative of the main subdisiplines of psychology reserach; Journal of Applied Psychology (JAP; Applied Psychology), Journal of Consulting and Clinical Psychology (JCCP; Clinical Psychology) , Developmental Psychology (DP; Developmental Psychology), Journal of Experimental Psychology: General (JEPG; Experimental Psychology), and Journal of Personality and Social Psychology (JPSP; Social Psychology). The excluded Journals (PLOS, Psychological Science, Frontiers in Psychology) have only began to be published in the last 15 years, which was not considered long enough to begin to look for trends in reported effect sizes over time. The included subset includes a total of `r nrow(dat)` statistical test results from a total of `r length(unique(dat$article))` articles published from 1985 to 2013.
-
-After preregistration, 36 additional reported test statistics were excluded, 3 which reported an r of 1, leading to an infinite Cohen's z, and 33 test which were parsed by statcheck as reporting impossible values (e.g., "F(0, 55) = 5.71, p < .05", "r(66) = 5.42, p < .001"). 
-
-
-### Effect size extraction and conversion 
-
-All test statistics were converted to Fisher Z transformed correlation coefficents following {Open Science Collaboration, 2015 #611} for visulisation and analysis. Negative effect sizes (i.e., negative correlations) were set to be positive for ease of analysis and visulisation. Because typical APA notation for z tests does not report the included sample size in a standardised formal, Z scores were excluded from analyses (n = `r sum(dat$Statistic=="Z")`). As it was not possible to derrive valid standard errors for F statistics with error degrees of freedom above 1 or for Chi square statistics (n = `r sum(dat$Statistic=="Chi2" | (dat$Statistic=="F"& dat$df2 > 2) )`), these analyses were excluded from the multilevel meta-analysis, but are included in visulisations. For other tests, standard errors were estimated as $\sqrt{1/(n - 3)}$, taking the degrees of freedom for the denominator minus two as n (or just the degrees of freedom minus two in the case of correlations and t tests). Including the tests that were excluded as their standard errors could not be accuratly estimated in these analysis (and estimating the standard error as a above) led to *[no differences / describe difference.]*. 
-
-It is also worth noting that in ANOVA designs where there is more than one factor included (or equivalent regression analyses), this conversion leads to the exclusion of any non-focal variables' variance from the denominator. This means that a study which includes a variable as a covariate will lead to a larger observed effect size than a study which does not include the covariate, although the amount of variance explained by the focal variable remains constant {Olejnik, 2003 #933}. 
-
-# Accounting for peripheral tests
-
-Finally, there is no way of verifying that all of the statistical tests reported in the current study are not, for example, manipulation tests or randomisation tests, and it is likely that a large proportion of those tests reported are in fact not tests of the main hypotheses of each paper. Any observed change in effect sizes could be driven by changes in reporting practices, for example becoming more or less likely to report manipulation checks or randomisation checks over time. In order to account for this issue, a number of methods were used to attempt to identify the focal test of each article. (a) The analyses were performed looking just at the first statistical test reported in each paper. (b) The anlayses were performed looking just at the largest effect size seen in each paper. Multilevel analyses for both of these approaches dropped the random effect for article, as in each case there is only a single effect size from each article. 
-
 
 
 ```{r data cleaning}
  # Setting seed for reproducibility
-# set.seed(14122018) # Remove for main analysis
-
-# Extracting test subset
-# dat<-dat[runif(n = nrow(dat)/1000, min = 0, max = nrow(dat)),] # Remove for main analysis
-# rm("data") 
 
 # Adapted from https://osf.io/z7aux/ # effect size transformation 
 esComp <- function(x,df1,df2,esType) {
@@ -74,6 +51,13 @@ dat$r <- esComp(x = dat$Value, df1 = dat$df1, df2 =  dat$df2, esType = dat$Stati
 # setting to positive
 dat$r <- abs(dat$r)
 
+# Removing impossible rs 
+# dat$Raw[dat$r > 1 & !is.na(dat$r)]
+greaterthan1 <- sum(dat$r > 1 & !is.na(dat$r))
+
+# removing impossible correlations 
+dat$r[dat$r > 1 & !is.na(dat$r)] <- NA
+
 # transforming to fisher's z
 dat$z <- 0.5*log((1 + dat$r) / (1 - dat$r)) 
 
@@ -83,31 +67,55 @@ dat$SEz <- sqrt(1/(dat$df2 - 5))
 # Binary for valid standard error
 dat$vaidSE <- !((dat$Statistic=="Chi2" | (dat$Statistic=="F" & dat$df1 > 1) | (dat$Statistic == "Z")) | dat$df2 < 6 | is.na(dat$z) | dat$z == Inf)
 
+# Extracting different subsets
+datMeta <- filter(dat, dat$vaidSE)
+
+datComplete <- dat[!is.na(dat$z)& !(dat$z == Inf) &!is.na(dat$SEz) & !(dat$SEz == Inf),]
+
+write_rds(datMeta, "data/datMeta.RDS")
 
 ```
 
+This dataset includes `r nrow(data)` statistical test results which were reported in APA style from a total of `r length(unique(data$Source))` articles. This paper only uses a subset of these studies, those for which results were avaliable going back to 1985. This analysis therfore includes data from six psychology journals chosen to be representative of the main subdisiplines of psychology reserach; Journal of Applied Psychology (JAP; Applied Psychology), Journal of Consulting and Clinical Psychology (JCCP; Clinical Psychology) , Developmental Psychology (DP; Developmental Psychology), Journal of Experimental Psychology: General (JEPG; Experimental Psychology), and Journal of Personality and Social Psychology (JPSP; Social Psychology). The excluded Journals (PLOS, Psychological Science, Frontiers in Psychology) have only began to be published in the last 15 years, which was not considered long enough to begin to look for trends in reported effect sizes over time. The included subset includes a total of `r nrow(dat)` statistical test results from a total of `r length(unique(dat$article))` articles published from 1985 to 2013.
+
+### Effect size extraction and conversion 
+
+All test statistics were converted to Fisher Z transformed correlation coefficents following {Open Science Collaboration, 2015 #611} for visulisation and analysis. Negative effect sizes (i.e., negative correlations) were set to be positive for ease of analysis and visulisation. Standard errors were estimated as $\sqrt{1/(n - 3)}$, taking the degrees of freedom for the denominator minus two as n (or just the degrees of freedom minus two in the case of correlations and t tests). Because typical APA notation for z tests does not report the included sample size in a standardised formal (and therefore this information was not avaliable in this dataset), Z scores were excluded from analyses (n = `r sum(dat$Statistic=="Z")`). As it was not possible to derrive valid standard errors for F statistics with effect degrees of freedom above 1 (n = `r sum(dat$Statistic=="F" & dat$df1 > 2, na.rm = T) `) or for Chi square statistics (n = `r sum(dat$Statistic=="Chi2")`), these analyses were excluded from the multilevel meta-analysis, but are included in visulisations and summary statistics below. An additional subset of results were excluded from all as they produced standard errors or Z transformed correlation coefficents which could not be estimated or were infinite (e.g., studies which reported impossible test statistics such as "F(0, 55) = 5.71, p < .05" or "r(66) = 5.42, p < .001" (n = `r sum(((dat$Statistic=="Chi2" | (dat$Statistic=="F" & dat$df1 > 1) | (dat$Statistic == "Z")) | dat$df2 < 6 | is.na(dat$z) | dat$z == Inf)) - (sum(dat$Statistic=="Z") + sum(dat$Statistic=="Chi2") + sum(dat$Statistic=="F" & dat$df1 > 2, na.rm = T) )`), and studies with $df_2$ of < 6). A total of `r nrow(datMeta)` effect size estimates with valid standard errors were extracted and are included in the meta-regression analyses below.
+
+It is also worth noting that in ANOVA designs or multiple regression where there is more than one factor or covariate included, this conversion leads to the exclusion of any non-focal variables’ variance from the denominator. This means that a study which includes a variable as a covariate will lead to a larger observed effect size than a study which does not include the covariate, although the relationship between the the focal variable remains constant {Olejnik, 2003 #933}. (*Double check WHETHER THIS WOULD INFLATE DF_2 () and possibly move below to the point whhere this would )
 
 ## Analysis 
 
-All analyses were tested and developed on a subset of 0.01% of the dataset before being pre-registered (see https://osf.io/e3kr7/). 
+Multilevel meta-regression was performed to examine the relationship between time and reported effect sizes. 
+
+$ES_i = \gamma_0 + \gamma_1Year_{i} + \eta_{id} + \eta_{article} + \eta_{journal} + \epsilon_{i}$
+
+The multilevel-meta-regression includes random effects for individual tests $\eta_{id}$, articles $\eta_{article}$ and journals $\eta_{journal}$, and includes year of publication of each article as a fixed effect ($\gamma_1Year$). Because of the high memory capacity necessary to perform these analyses, the University of Melbourne's Spartan high performance computing platform was used to conduct these multilevel models {Meade, 2017 #1020}. 
+
+This analysis was performed including the statistical tests for which correlations and standard errors could be estimated, but where standard errors estimated as above are not valid, a total of n = `r nrow(datComplete)` effects) lead to ... (i.e., ...!!!). The results below present the results excluding those studies. 
+
+# Accounting for peripheral tests
+
+Finally, there is no way of verifying that all of the statistical tests reported in the current study are not, for example, manipulation tests or randomisation tests, and it is likely that a large proportion of those tests reported are in fact not tests of the main hypotheses of each paper. Any observed change in effect sizes could be driven by changes in reporting practices, for example becoming more or less likely to report manipulation checks or randomisation checks over time. In order to account for this issue, a number of methods were used to attempt to identify the focal test of each article. (a) The analyses were performed looking just at the first statistical test reported in each paper. (b) The anlayses were performed looking just at the largest effect size seen in each paper. This analysis did not include a random effect for each statistical test, as each article only provides a single statistical test result for analysis. 
+
+## Deviations from preregistration
+
+All analyses were tested and developed on a subset of 0.01% of the dataset before being pre-registered. After preregistration, 36 additional reported test statistics were excluded using non-preregistered rules, 3 which reported an r of 1, leading to an infinite Cohen's z, and 33 test which were parsed by statcheck as reporting impossible values. Additionally, one meta-regression model was misspecified in the preregistered code, and has been fixed in the following. All random effects meta-regression tests were performed with an additional random effect at the lowest level (i.e., at the effect level) than was preregistered, as this was thought to be more conceptually appropriate as all tests within a paper cannot be assumed to have estimated the same parameter. Fixed effects change by less than .005 if this additional random effect is not included. Any other non-preregistered statistical test are marked as exploratory.
 
 
 ```{r data analaysis}
 library(metafor); library(tidyverse)
 
-datMeta <- filter(dat, dat$vaidSE)
+# NOTE this was misspecified in pre reg 
+mod <- rma.mv(z, V = SEz^2, random = ~  1 |  journal / article / id, mods = (year-mean(year)), data = datMeta[sample(1:nrow(datMeta), size = 2000, replace = F),])
 
-mod <- rma.mv(z, V = SEz^2, random = ~  1 | journal / factor(article), mods = year, data = datMeta[sample(1:nrow(datMeta), size = 1000, replace = F),])
-
-
-
-# All data analysis
-datComplete <- dat[!is.na(dat$z)& !(dat$z == Inf) &!is.na(dat$SEz) & !(dat$SEz == Inf),]
-modAll <- rma.mv(z, V = SEz^2, random = ~  1 | journal / factor(article), mods = year, data = datComplete[sample(1:nrow(datComplete), size = 1000, replace = F),])
+# All data analysis  
+modAll <- rma.mv(z, V = SEz^2, random = ~  1 |  journal / article / id, mods = (year-mean(year)), data = datComplete[sample(1:nrow(datComplete), size = 2000, replace = F),])
 
 ranef(mod)
 ```
 
+Look at rate of each type of analysis over time 
 
 
 ```{r excluding all but largest effect in each paper}
@@ -118,9 +126,11 @@ datMetaLargest <- dat %>%
 
 # modLargest <- rma.mv(z, V = SEz^2, random = ~ 1 | journal, mods = (year - mean(year)), data = datMetaLargest)
 
-modLargest <- rma.mv(z, V = SEz^2, random = ~ 1 | journal / article, mods = (year - mean(year)), data = datMetaLargest[sample(1:nrow(datMetaLargest), size = 1000, replace = F),])
+modLargest <- rma.mv(z, V = SEz^2, random = ~ 1 | journal / factor(article), mods = (year - mean(year)), data = datMetaLargest[sample(1:nrow(datMetaLargest), size = 2000, replace = F),])
+
 
 ranef(modLargest)
+
 ```
 
 
@@ -130,14 +140,33 @@ datMetaFirst <- dat %>%
   group_by(article) %>%
   slice(1)
 
-modFirst <- rma.mv(z, V = SEz^2, random = ~  1 | journal, mods = (year - mean(year)), data = datMetaFirst[sample(1:nrow(datMetaFirst), size = 1000, replace = F),])
+modFirst <- rma.mv(z, V = SEz^2, random = ~ 1 | journal / factor(article), mods = (year - mean(year)), data = datMetaFirst[sample(1:nrow(datMetaFirst), size = 2000, replace = F),])
 
 ranef(modFirst)
+
 ```
 
-## Results 
 
-This analysis shows that there has been effectivly no change in the average effect sizes reported in these journals over time, with an estimated decrease per year of `r mod$b[2]` (using all data) in Fisher z score units. This corresponds to a correlation coefficent change per year of just `r transf.ztor(mod$b[2])`. The two models using the first reported statistical test and the largest statistical test in each article argree, showing a negligable decrease over time. 
+```{r predicting scores from random effects models}
+
+# Main difference between 1985 and today 
+quarterDecChange <-  transf.ztor(predict(mod, (2010 - mean(datMeta$year)))[[1]]) - transf.ztor(predict(mod, (1985 - mean(datMeta$year)))[[1]])
+
+# largest effect difference between 1985 and today
+quarterDecChangeLargest <- transf.ztor(predict(modLargest, (2010 - mean(datMetaLargest$year)))[[1]])- transf.ztor(predict(modLargest, (1985 - mean(datMetaLargest$year)))[[1]]) 
+
+# first effect difference betweeen 1985 and today 
+quarterDecChangeFirst <- transf.ztor(predict(modFirst, (2010 - mean(datMetaFirst$year)))[[1]]) - transf.ztor(predict(modFirst, (1985 - mean(datMetaFirst$year)))[[1]])
+
+```
+
+## Results
+
+This analysis shows that there has been a notable change in the average effect sizes reported in these journals over time, with an estimated $Z_{fisher}$ decrease per year of `r mod$b[2]`, 95% CI [`r mod$ci.lb[2]`, `r mod$ci.ub[2]`]. In correlation coefficent terms this is a one year estimated change of `r transf.ztor(mod$b[2])` 95% CI [`r transf.ztor(mod$ci.lb[2])`, `r transf.ztor(mod$ci.ub[2])`]. This corresponds to an correlation coefficent coefficient difference between 1985 and 2010, a 25 year period, of `r quarterDecChange`.
+
+The two models using the first reported statistical test and the largest statistical test in each article show similar results. Including only the first reported statistical test in each paper, suggesting a small but noticable decrease over time, with a $Z_{fisher}$ `r modFirst$b[2]` (95% CI [`r modFirst$ci.lb[2]`, `r modFirst$ci.ub[2]`]) estimated yearly change acorrding to the model including only the first reported effect effects. This is equivalent to a correlation coefficent change of `r transf.ztor(modFirst$b[2])`, 95% CI [`r transf.ztor(modFirst$ci.lb[2])`, `r transf.ztor(modFirst$ci.ub[2])`], or a change between 1985 and 2010 of `r quarterDecChangeFirst` points, 95% CI [`r quarterDecChangeFirst95CIS`].
+
+Examening the mode including only the largest effect in each paper $Z_{fisher}$ change of `r modLargest$b[2]` (95% CI [`r modLargest$ci.lb[2]`, `r modLargest$ci.ub[2]`]) estimated yearly change (equivalent to a correlation coefficent change of `r transf.ztor(modLargest$b[2])`, 95% CI [`r modLargest$ci.lb[2]`, `r modLargest$ci.ub[2]`]), and a predicted change from 1985 to 2010 of 
 
 
 ## Appendix 
@@ -166,36 +195,79 @@ And standard errors for these statistics when derrived from F tests with denomin
 $\sigma_\bar{z} = \frac{1}{\sqrt{n - 3}}$ 
 
 
-#### Diagnostics 
-
-profile(rma.mv(z, V = SEz^2, random = ~  factor(article) | journal, mods = year, data = datMeta))
 
 
 ```{r plots}
 
-ggplot(data = datMeta, aes(y = z, x = year, group = year))+ geom_boxplot(alpha = .1) 
+ggplot(data = datMeta, aes(y = z, x = year, group = year))+ geom_jitter(alpha = .01, width = .2, height = 0) 
 
-ggplot(data = datMetaLargest, aes(y = z, x = year, group = year))+ geom_boxplot() 
+ggplot(data = datMetaLargest, aes(y = z, x = year, group = year)) + geom_boxplot() 
 
-plot(datMeta %>% 
+ggplot(data = datMetaLargest, aes(y = z, x = year, group = year, colour = journal))+ geom_jitter(alpha = .1, width = .2, height = 0) 
+
+```
+
+
+```{r plots2}
+overallMean <-datComplete %>% 
   group_by(year) %>%
-  summarise(mean_z = mean(z)))
+  summarise("Mean ES" = mean(z, na.rm = T))
 
-plot(dat %>% 
+overallMedian <- datComplete %>% 
   group_by(year) %>%
-  summarise(mean_z = mean(z, na.rm = T)))
+  summarise("Median ES" = median(z, na.rm = T), "SD ES" = sd(z))
 
-plot(datMetaLargest %>% 
+metaMean <- datMeta %>% 
   group_by(year) %>%
-  summarise(mean_z = mean(z)))
+  summarise("Mean ES (meta-analysis subset)" = mean(z, na.rm = T))
 
-plot(datMetaLargest %>% 
+metaMedian <- datMeta %>% 
   group_by(year) %>%
-  summarise(median_z = median(z)))
+  summarise("Median ES (meta-analysis subset)" = median(z, na.rm = T), "SD meta ES" = sd(z))
 
-plot(datMetaFirst %>% 
+largestMean <- datMetaLargest %>% 
   group_by(year) %>%
-  summarise(mean_z = mean(z)))
+  summarise("Mean largest ES" = mean(z))
+
+largestMedian <- datMetaLargest %>% 
+  group_by(year) %>%
+  summarise("Median largest ES" = median(z), "SD largest ES" = sd(z))
+
+firstMean <- datMetaFirst %>% 
+  group_by(year) %>%
+  summarise("Mean first ES" = mean(z))
+
+firstMedian <- datMetaFirst %>% 
+  group_by(year) %>%
+  summarise("Median first ES" = median(z), "SD first ES" = sd(z))
+
+# Summary table
+summaryTab <- data.frame(overallMean,
+overallMedian[,c(2,3)],
+metaMean[,2],
+metaMedian[,c(2,3)],
+largestMean[,2],
+largestMedian[,c(2,3)],
+firstMean[,2],
+firstMedian[,c(2,3)])
+
+# Summary table
+summaryPlotTab <- data.frame(overallMean,
+overallMedian[,2],
+metaMean[,2],
+metaMedian[,2],
+largestMean[,2],
+largestMedian[,2],
+firstMean[,2],
+firstMedian[,2])
+
+summaryPlot <- gather(summaryPlotTab, key = "Summary type", value = "Average ES", -year)
+
+# Reordering factor levels 
+summaryPlot$`Summary type` <- factor(summaryPlot$`Summary type`, levels = names(colMeans(summaryPlotTab[,-1]))[order(decreasing = T, colMeans(summaryPlotTab[,-1]))])
+
+ggplot(summaryPlot, aes(y = `Average ES`, x = year, group = `Summary type`, colour = `Summary type` )) + 
+  geom_line() + geom_point() + ylim(0,1) + theme_classic() + ylab("Average ES") + xlab("Year") + scale_color_discrete(name = "Summary type", labels = str_replace_all(levels(summaryPlot$`Summary type`), "\\.", " "))
 
 ```
 
