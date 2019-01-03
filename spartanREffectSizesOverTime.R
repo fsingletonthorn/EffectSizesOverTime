@@ -24,7 +24,7 @@ names(dat)[19] <- "year"
 names(dat)[1] <- "id"
 names(dat)[2] <- "article"
 
-# Adapted from https://osf.io/z7aux/
+# Adapted from https://osf.io/z7aux/ # effect size transformation 
 esComp <- function(x,df1,df2,esType) {
   esComp <- ifelse(esType=="t",sqrt((x^2*(1 / df2)) / (((x^2*1) / df2) + 1)), 
                    ifelse(esType=="F",sqrt((x*(df1 / df2)) / (((x*df1) / df2) + 1))*sqrt(1/df1),
@@ -49,17 +49,18 @@ dat$SEz <- sqrt(1/(dat$df2 - 5))
 # Binary for valid standard error
 dat$vaidSE <- !((dat$Statistic=="Chi2" | (dat$Statistic=="F" & dat$df1 > 1) | (dat$Statistic == "Z")) | dat$df2 < 6 | is.na(dat$z) | dat$z == Inf)
 
-# extrating data for main meta-analysis
+# Extracting different subsets
 datMeta <- filter(dat, dat$vaidSE)
 
+# all articles with non crazy zs and SEzs 
+datComplete <- dat[!is.na(dat$z)& !(dat$z == Inf) &!is.na(dat$SEz) & !(dat$SEz == Inf),]
+
 # Model
-mod <- rma.mv(z, V = SEz^2, random = ~  factor(article) | journal, mods = (year - mean(year)), data = datMeta)
+mod <- rma.mv(z, V = SEz^2, random = ~  1 |  journal / factor(article) / id, mods = (year-mean(year)), data = datMeta[sample(1:nrow(datMeta), size = 1000, replace = F),])
 saveRDS(mod, file = "mod.rds")
 
-
-
-
-
+# modNoRandomEffectsForID <- rma.mv(z, V = SEz^2, random = ~  1 |  journal / factor(article), mods = (year - mean(year)), data = datMeta)
+# saveRDS(modNoRandomEffectsForID, file = "modNoRandomEffectsForID.rds")
 
 
 

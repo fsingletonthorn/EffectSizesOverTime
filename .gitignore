@@ -2,3 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+data/modAll.RDS
+data/mod.RDS
+data/Io2Largest.RDS
+data/Io2.R
+data/Io2First.RDS
