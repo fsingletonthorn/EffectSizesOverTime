@@ -8,10 +8,10 @@ output: word_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 
-# Setting n sig digits 
-options(scipen=1, digits=3)
+# Setting n sig digits and hiding table NAs 
+options(scipen=1, digits=3, knitr.kable.NA = '')
 
-# Functions: 
+# Custom functions: 
 # This just tables the output of meta-analyses nicely
 niceMLMESum3 <- function(REMod) {
   data_frame(Estimate = c(REMod$b[1], REMod$b[2], rep(NA, 4)), "95% CI LB" = c(REMod$ci.lb, rep(NA, 4)), "95% CI UB" = c(REMod$ci.ub, rep(NA, 4)), SE = c(REMod$se,  rep(NA, 4)), p = c(ifelse(REMod$pval<.001, "< .001", REMod$pval),  rep(NA, 4)), 
@@ -31,6 +31,17 @@ niceMLMESum2 <- function(REMod) {
                                   paste0("QE(",REMod$k-1, ") = ", round(REMod$QE, 2),  ", p ", ifelse(REMod$QEp <.001, "< .001", paste("=" , round(REMod$QEp, 2))))))
 }
 
+# This converts effect sizes from t, F, r and chi squared analyses to correlation coefficients (df2 = df for all but F tests)
+# Adapted from https://osf.io/z7aux/ - Open Science Collaboration. (2015). Estimating the reproducibility of psychological science. Science, 349(6251).  Retrieved from http://science.sciencemag.org/content/349/6251/aac4716.abstract
+esComp <- function(x,df1,df2,esType) {
+  esComp <- ifelse(esType=="t",sqrt((x^2*(1 / df2)) / (((x^2*1) / df2) + 1)), 
+                  ifelse(esType=="F",sqrt((x*(df1 / df2)) / (((x*df1) / df2) + 1))*sqrt(1/df1),
+                         ifelse(esType=="r",x,
+                                ifelse(esType=="Chi2",sqrt(x/(df2 + 2)),
+                                                     ifelse(esType == "Z",NA,NA)))))
+  return(esComp)
+}
+
 ```
 
 
@@ -41,7 +52,6 @@ data <- read_csv2(file = "data/150211FullFile_AllStatcheckData_Automatic1Tail.cs
 
 # exluding all articles where the articles are not appliable (i.e., samples don't go back to 1985)
 includedJournals <- c("DP", "JAP", "JCCP", "JEPG", "JPSP")
-
 
 dat <- data[data$journals.jour. %in% includedJournals,]
 
@@ -55,17 +65,6 @@ names(dat)[2] <- "article"
 
 
 ```{r data cleaning}
-# Setting seed for reproducibility
-
-# Adapted from https://osf.io/z7aux/ # effect size transformation 
-esComp <- function(x,df1,df2,esType) {
-  esComp <- ifelse(esType=="t",sqrt((x^2*(1 / df2)) / (((x^2*1) / df2) + 1)), 
-                  ifelse(esType=="F",sqrt((x*(df1 / df2)) / (((x*df1) / df2) + 1))*sqrt(1/df1),
-                         ifelse(esType=="r",x,
-                                ifelse(esType=="Chi2",sqrt(x/(df2 + 2)),
-                                                     ifelse(esType == "Z",NA,NA)))))
-  return(esComp)
-}
 
 # calculating pseudo correlation coefficents
 dat$r <- esComp(x = dat$Value, df1 = dat$df1, df2 =  dat$df2, esType = dat$Statistic)
@@ -130,22 +129,22 @@ changeOverTimeLargest <- transf.ztor(predict(modLargest, (2013 - mean(datMetaLar
 ```
 
 ## Abstract
-This article uses a mutlilevel meta-regression framework to estimate the change in average effect sizes in psychological reserach using a database of over 130,000 effect size estimates from over 9,000 articles published in 5 APA journals from 1985 to 2013 {Nuijten, 2015 #550}. The results of this analysis suggest that the average effect size reported in psychological reserach has decreased over time, with the average effect reported in these articles decreasing from 1985 to 2013 by an estiamted `r mod$b[2]` (95% CI [`r c(mod$ci.lb[2],mod$ci.ub[2])`]) Fisher Z tranformed correlation coefficent units per year, representing an estimated correlation coefficient decrease of `r changeOverTime` from 1985 to 2013. However, examining just the largest effect reported in each paper as a proxy for the focal test of each paper suggests that there has been a slight increase in effect sizes over time `r modLargest$b[2]` (95% CI [`r c(modLargest$ci.lb[2],modLargest$ci.ub[2])`]) in Fisher Z tranformed correlation coefficent units per year, or equivalently an estimated increase from 1985 to 2013 of `r changeOverTimeLargest` in correlation coefficinet units. Taken together, these results suggest that there has been a small decrease in the average effect sizes reported over time, although whether this decrease is reflective of a decrease in the size of the main effects under study in psychology is an open question.
+This article uses a multilevel meta-regression framework to estimate the change in average effect sizes in psychological research using a database of over 130,000 effect size estimates from over 9,000 articles published in 5 APA journals from 1985 to 2013 {Nuijten, 2015 #550}. The results of this analysis suggest that the average effect size reported in psychological research has decreased over time by `r mod$b[2]` (95% CI [`r c(mod$ci.lb[2],mod$ci.ub[2])`]) Fisher Z transformed correlation coefficient units per year, representing an estimated correlation coefficient decrease of `r changeOverTime` from 1985 to 2013. However, attempting to isolate the focal analysis or main effect reported in each paper by looking at the largest effect size reported in each paper and the first statistical test reported in each paper provide divergent evidence. Examining just the first reported tests shows broad agreement with analyses including all results (a `r modFirst$b[2]` estimated yearly change, 95% CI [`r c(modFirst$ci.lb[2],mod$ci.ub[2])`]). However, looking at the largest effect reported in each paper suggests that there has been a slight increase in effect sizes over time, a `r modLargest$b[2]` (95% CI [`r c(modLargest$ci.lb[2],modLargest$ci.ub[2])`]) Fisher z score change per year, or equivalently an estimated increase from 1985 to 2013 of `r changeOverTimeLargest` in correlation coefficient units. Together these results suggest that there has been a small decrease in the average effect sizes reported in psychology over time, although the degree to which this decrease is reflective of a decrease in the size of the focal or main effects under study in psychology is an open question.
 
 ## Introduction
-An important question in understanding the history of psychological science is whether effect sizes have changed over time. Are we studying smaller effects over time, having already studied the “low hanging fruit” {Baumeister, 2016 #1022}? Or could methodological reforms and the increasing awareness of the importance of measurement in reserach design lead to increased effect sizes {Nelson, 2018 #750;Greenland, 2017 #713;Loken, 2017 #164}? This paper uses an extensive database of over 130,000 effect size estimates from over 10,000 articles published in 5 APA journals from 1985 to 2013 collected as part of {Nuijten, 2015 #550} to examine how effect sizes have changed in psychological reserach over this period. 
+An important question in understanding the history of psychological science is whether effect sizes have changed over time. Are we studying smaller effects over time, having already studied the “low hanging fruit” {Baumeister, 2016 #1022}? Or could methodological reforms and the increasing awareness of the importance of measurement in research design lead to increased effect sizes {Nelson, 2018 #750;Greenland, 2017 #713;Loken, 2017 #164}? This paper uses an extensive database of over 130,000 effect size estimates from over 10,000 articles published in 5 APA journals from 1985 to 2013 collected as part of {Nuijten, 2015 #550} to examine how effect sizes have changed in psychological research over this period. 
 
-The question of how effect sizes have changed over time has important implications for understanding the results of large scale power surveys of psychological research (e.g., {Cohen, 1962 #487;Rosnow, 1989 #37;Szucs, 2017 #25}), as comparisons of these analyses over time assume that effect sizes have been consistent over time. Most of the efforts to estimate the statistical power of psychological reserach have used Cohen's effect size benchmarks, values he cautions researchers to be weary of {Cohen, 1988 #562}. According to a recent meta-anlaysis of 46 power surveys of psychological research [cite meta-analysis], the average statistical power of psychological research is  .23 95% CI [.17, .29]  for "small" effect sizes (effect sizes equivalent to r = .1 or Cohen's d = .2), .62 95% CI [.55, .69] to detect medium effects (r = .3 or Cohen's d = 0.5)), and .80, 95% CI [.68, .92] to detect large effects (effects equivalent to 0.8 Cohen's d or r = .5) [cite meta-analysis]. This same analysis also suggests that there has been little-to-no change in the average statistical power of research conducted in psychology to detect these effect sizes over time. However, in order to know whether the statistical power of psychological research has changed over time, it is necessary to know whether the effect sizes under study in psychological research have changed. 
+The question of how effect sizes have changed over time has important implications for understanding the results of large scale power surveys of psychological research (e.g., {Cohen, 1962 #487;Rosnow, 1989 #37;Szucs, 2017 #25}), as comparisons of these analyses over time assume that effect sizes have been consistent over time. Most of the efforts to estimate the statistical power of psychological research have used Cohen's effect size benchmarks, values he cautions researchers to be weary of {Cohen, 1988 #562}. According to a recent meta-analysis of 46 power surveys of psychological research [cite meta-analysis], the average statistical power of psychological research is  .23 95% CI [.17, .29]  for "small" effect sizes (effect sizes equivalent to r = .1 or Cohen's d = .2), .62 95% CI [.55, .69] to detect medium effects (r = .3 or Cohen's d = 0.5)), and .80, 95% CI [.68, .92] to detect large effects (effects equivalent to 0.8 Cohen's d or r = .5) [cite meta-analysis]. This same analysis also suggests that there has been little-to-no change in the average statistical power of research conducted in psychology to detect these effect sizes over time. However, in order to know whether the statistical power of psychological research has changed over time, it is necessary to know whether the effect sizes under study in psychological research have changed. 
 
-A small number of pervious studies have extracted effect size benchmarks from psychological reserach in domains as varied as social psychology {Richard, 2003 #603} and management psychology {Paterson, 2015 #817; Bosco, 2015 #157}, showing estimates of the average effect size in various subfields which range from an mean correlation coefficient of .21 seen in social psychology meta-analyses {Richard, 2003 #603}, to a mean effect of 0.94 Cohen’s d (equivalent to r = .42) seen across Statistical tests reported in recent cognitive neuroscience, psychology and psychiatry articles published in high impact journals {Szucs, 2017 #25}. However, we have not identified any studies which have adequate precision to make strong inferences about the size or direction of  the change in effect sizes over time. We know of just one study which attempted to examine the degree and direction of change in average effect sizes over time. {Paterson, 2015 #817}, which found a small negative correlation (r = -.05, 95% CI [`r transf.rtoz(-.05) - (1.96 * 1/sqrt(776 - 3))`, `r transf.rtoz(-.05) + (1.96 * 1/sqrt(776 - 3))`]) between the reported magnitude of correlations and their year of publication in 776 meta-analytic conclusions from meta-analyses in management psychology. The current analysis  allows us to examine the average effect size reported in psychological research, and allows us to look for changes over time across fields of psychological reserach.
+A small number of previous studies have extracted effect size benchmarks from psychological research in domains as varied as social psychology {Richard, 2003 #603} and management psychology {Paterson, 2015 #817; Bosco, 2015 #157}, showing estimates of the average effect size in various subfields which range from an mean correlation coefficient of .21 seen in social psychology meta-analyses {Richard, 2003 #603}, to a mean effect of 0.94 Cohen’s d (equivalent to r = .42) seen across Statistical tests reported in recent cognitive neuroscience, psychology and psychiatry articles published in high impact journals {Szucs, 2017 #25}. However, we have not identified any studies which have adequate precision to make strong inferences about the size or direction of  the change in effect sizes over time. We know of just one study which attempted to examine the degree and direction of change in average effect sizes over time. {Paterson, 2015 #817}, which found a small negative correlation (r = -.05, 95% CI [`r transf.rtoz(-.05) - (1.96 * 1/sqrt(776 - 3))`, `r transf.rtoz(-.05) + (1.96 * 1/sqrt(776 - 3))`]) between the reported magnitude of correlations and their year of publication in 776 meta-analytic conclusions from meta-analyses in management psychology. The current analysis  allows us to examine the average effect size reported in psychological research, and allows us to look for changes over time across fields of psychological research.
 
 ### Method
 
-This analysis uses the dataset developed in {Nuijten, 2015 #550}, a study examining the number of errors in statistical tests reported in psychology articles (all data from https://osf.io/gdr4q/).  This dataset includes `r nrow(data)` statistical test results which were reported in APA style from a total of `r length(unique(data$Source))` articles. This paper only uses a subset of these studies, those for which results were avaliable going back to 1985. This analysis therfore includes data from five psychology journals chosen to be representative of the main subdisiplines of psychology reserach; Journal of Applied Psychology (JAP; Applied Psychology), Journal of Consulting and Clinical Psychology (JCCP; Clinical Psychology) , Developmental Psychology (DP; Developmental Psychology), Journal of Experimental Psychology: General (JEPG; Experimental Psychology), and Journal of Personality and Social Psychology (JPSP; Social Psychology). The excluded Journals (PLOS, Psychological Science, Frontiers in Psychology) have only began to be published in the last 15 years. The included subset includes a total of `r nrow(dat)` statistical test results from a total of `r length(unique(dat$article))` articles published from 1985 to 2013.
+This analysis uses the dataset developed in {Nuijten, 2015 #550}, a study examining the number of errors in statistical tests reported in psychology articles (all data from https://osf.io/gdr4q/).  This dataset includes `r nrow(data)` statistical test results which were reported in APA style from a total of `r length(unique(data$Source))` articles. This paper only uses a subset of these studies, those for which results were available going back to 1985. This analysis therefore includes data from five psychology journals chosen to be representative of the main subdisciplines of psychology research; Journal of Applied Psychology (JAP; Applied Psychology), Journal of Consulting and Clinical Psychology (JCCP; Clinical Psychology) , Developmental Psychology (DP; Developmental Psychology), Journal of Experimental Psychology: General (JEPG; Experimental Psychology), and Journal of Personality and Social Psychology (JPSP; Social Psychology). The excluded Journals (PLOS, Psychological Science, Frontiers in Psychology) have only began to be published in the last 15 years. The included subset includes a total of `r nrow(dat)` statistical test results from a total of `r length(unique(dat$article))` articles published from 1985 to 2013.
 
 ### Effect size extraction and conversion 
 
-All test statistics were converted to Fisher Z transformed correlation coefficents (henseforth identified as $Fisher_z$) following {Open Science Collaboration, 2015 #611} for visulisation and analysis, see supplementary materials 1 for the transformations used. Negative effect sizes (i.e., negative correlations) were set to be positive for ease of analysis and visulisation. Standard errors were estimated as $\sqrt{1/(n - 3)}$, taking the degrees of freedom for the denominator minus two as n (or the degrees of freedom minus two in the case of correlations and t tests). Because typical APA notation for z tests does not report the included sample size in a standardised formal (and therefore this information was not avaliable in this dataset), Z scores were excluded from analyses (n = `r sum(dat$Statistic=="Z")`). As it was not possible to derrive valid standard errors for F statistics with effect degrees of freedom above 1 (n = `r sum(dat$Statistic=="F" & dat$df1 > 2, na.rm = T) `) or for Chi square statistics (n = `r sum(dat$Statistic=="Chi2")`), these analyses were excluded from the multilevel meta-analysis (see Figure 1 for histograms comparing effect sizes included in each analysis and those derrived from the entier sample). An additional subset of results were excluded from all analayses and visulisations as they produced standard errors or Z transformed correlation coefficents which could not be estimated or were infinite (n = `r sum(((dat$Statistic=="Chi2" | (dat$Statistic=="F" & dat$df1 > 1) | (dat$Statistic == "Z")) | dat$df2 < 6 | is.na(dat$z) | dat$z == Inf)) - (sum(dat$Statistic=="Z") + sum(dat$Statistic=="Chi2") + sum(dat$Statistic=="F" & dat$df1 > 2, na.rm = T) )`, e.g., studies which reported impossible test statistics such as "F(0, 55) = 5.71, p < .05" or "r(66) = 5.42, p < .001" and studies with $df_2$ of < 6). A total of `r nrow(datMeta)` effect size estimates with valid standard errors from `r length(unique(datMeta$article))` articles were extracted and are included in the meta-regression analyses below.
+All test statistics were converted to Fisher Z transformed correlation coefficients (henceforth identified as $Fisher_z$) following {Open Science Collaboration, 2015 #611} for visualization and analysis, see supplementary materials 1 for the transformations used. Negative effect sizes (i.e., negative correlations) were set to be positive for ease of analysis and visualization. Standard errors were estimated as $\sqrt{1/(n - 3)}$, taking the degrees of freedom for the denominator minus two as n (or the degrees of freedom minus two in the case of correlations and t tests). Because typical APA notation for z tests does not report the included sample size in a standardized formal (and therefore this information was not available in this dataset), Z scores were excluded from analyses (n = `r sum(dat$Statistic=="Z")`). As it was not possible to derive valid standard errors for F statistics with effect degrees of freedom above 1 (n = `r sum(dat$Statistic=="F" & dat$df1 > 2, na.rm = T) `) or for Chi square statistics (n = `r sum(dat$Statistic=="Chi2")`), these analyses were excluded from the multilevel meta-analysis (see Figure 1 for histograms comparing effect sizes included in each analysis and those derived from the entire sample). An additional subset of results were excluded from all analyses and visualizations as they produced standard errors or Z transformed correlation coefficients which could not be estimated or were infinite (n = `r sum(((dat$Statistic=="Chi2" | (dat$Statistic=="F" & dat$df1 > 1) | (dat$Statistic == "Z")) | dat$df2 < 6 | is.na(dat$z) | dat$z == Inf)) - (sum(dat$Statistic=="Z") + sum(dat$Statistic=="Chi2") + sum(dat$Statistic=="F" & dat$df1 > 2, na.rm = T) )`, e.g., studies which reported impossible test statistics such as "F(0, 55) = 5.71, p < .05" or "r(66) = 5.42, p < .001" and studies with $df_2$ of < 6). A total of `r nrow(datMeta)` effect size estimates with valid standard errors from `r length(unique(datMeta$article))` articles were extracted and are included in the meta-regression analyses below.
 
 ## Analysis 
 
@@ -159,15 +158,15 @@ As a check on whether the exclusion of F statistics with $df_1$ of greater than 
 
 ### Accounting for peripheral tests
 
-Due to the large sample size included in this anlaysis, there is no feasible way of manually verifying whether the statistical tests included are not, for example, manipulation tests or randomisation tests, and it is almost certain that a large proportion of those tests reported are in fact not tests of the main hypotheses of each paper. This means that any observed change in effect sizes could be driven by changes in reporting practices, for example becoming more or less likely to report manipulation checks or randomisation checks over time. In order to account for this issue, two main methods were used to attempt to identify the focal test of each article. (a) Multilevel mixed effects meta-regression was performed looking just at the first statistical test reported in each paper. (b) Multilevel mixed effects meta-regression was performed using just the largest effect size reported in each paper. For (b), in `r nRepLargest` cases where there were ties within papers for the largest effect size, the first of the two equal outcome size analyses was taken. 
+Due to the large sample size included in this analysis, it was not feasible to manually label which statistical tests included were, for example, manipulation tests or randomization tests, and it is almost certain that a large proportion of those tests reported are in fact not tests of the main hypotheses of each paper. This means that any observed change in effect sizes could be driven by changes in reporting practices, such as an changing number of reported manipulation or randomization checks over time. In order to account for this issue, two main methods were used to attempt to identify the focal test of each article. (a) Multilevel mixed effects meta-regression was performed looking just at the first statistical test reported in each paper. (b) Multilevel mixed effects meta-regression was performed using just the largest effect size reported in each paper. For (b), in `r nRepLargest` cases where there were ties within papers for the largest effect size, the first of the two equal outcome size analyses was taken. 
 
 $ES_i = \gamma_0 + \gamma_1Year + \eta_{article} + \eta_{journal} + \epsilon_{i}$
 
-These multilevel-meta-regression includes random effects for individual articles $\eta_{article}$ and journal $\eta_{journal}$, and includes year of publication of each article as a fixed effect ($\gamma_1Year$). These analyses did not include random effects for each statistical test, as each article only provides a single effect size. Valid standard errors were calculatable for effect sizes from a total of `r nrow(datMetaLargest)` articles for analyses (a) and (b), all of which are included in these analyses.
+These multilevel-meta-regression includes random effects for individual articles $\eta_{article}$ and journal $\eta_{journal}$, and includes year of publication of each article as a fixed effect ($\gamma_1Year$). These analyses did not include random effects for each statistical test, as each article only provides a single effect size. Valid standard errors were calculable for effect sizes from a total of `r nrow(datMetaLargest)` articles for analyses (a) and (b), all of which are included in these analyses.
 
 ### Deviations from preregistration
 
-All analyses were tested and developed on a subset of 0.01% of the dataset before being pre-registered. After preregistration, 36 additional reported test statistics were excluded using non-preregistered rules, 3 which reported an r of 1, leading to an infinite Cohen's z, and 33 test which were parsed by statcheck as reporting impossible values. All random effects meta-regressions were performed with an additional random effect at the lowest level (i.e., at the effect level) than was preregistered, as this was thought to be more conceptually appropriate as all tests within a paper cannot be assumed to have estimated the same parameter. In the main model this changes the estiamte by less than {!!!} if this additional random effect is not included. Any other non-preregistered statistical test are marked as exploratory.
+All analyses were tested and developed on a subset of 0.01% of the dataset before being pre-registered. After preregistration, 36 additional reported test statistics were excluded using non-preregistered rules, 3 which reported an r of 1, leading to an infinite Cohen's z, and 33 test which were parsed by statcheck as reporting impossible values. All random effects meta-regressions were performed with an additional random effect at the lowest level (i.e., at the effect level) than was preregistered, as this was thought to be more conceptually appropriate as all tests within a paper cannot be assumed to have estimated the same parameter.
 
 ## Results
 ### Descriptives
@@ -191,16 +190,19 @@ Meta_anaylsis_data <- ggplot(data = datMeta, aes(x = r)) + geom_histogram(bins =
 
 First_reported_effect <- ggplot(data = datMetaFirst, aes(x = transf.ztor(z))) + geom_histogram(bins = 30, colour = "black", fill = "white") + theme_classic() + xlab("Correlation coefficent") + ylab(NULL) + ggtitle("First reported effect") + theme(plot.title = element_text(hjust = .5))+ theme(plot.title = element_text(hjust = .5)) + ylim(c(0,750))
 
-plot_grid(All_data,Meta_anaylsis_data, Largest_reported_effect, First_reported_effect)
+histograms <- plot_grid(All_data,Meta_anaylsis_data, Largest_reported_effect, First_reported_effect)
 
 ```
 
-The mean effect size reported in this study in correlation coefficent terms is `r mean(transf.ztor(datComplete$z))` and the median is `r median(transf.ztor(datComplete$z))`. Overall, the distribtuion of effect sizes in the meta-analytic subset is close to that seen in the full dataset, although the median and means are slightly higher (at `r mean(datMeta$r)` and `r median(datMeta$r)` respectivly). The effect sizes seen when examining only the highest effect size reported in each paper are much higher on average (with a mean correlation coefficent of `r mean(datMetaLargest$r)` and a median of  `r median(datMetaLargest$r)`).  See table 1 and  and figure 1 for a full list of descriptives about and histrograms of the distribution of effect sizes in each subsample.
+The mean effect size reported in this study in correlation coefficient terms is `r mean(transf.ztor(datComplete$z))` and the median is `r median(transf.ztor(datComplete$z))`. Overall, the distribution of effect sizes in the meta-analytic subset is close to that seen in the full dataset, although the median and means are slightly higher (at `r mean(datMeta$r)` and `r median(datMeta$r)` respectively). The effect sizes seen when examining only the highest effect size reported in each paper are much higher on average (with a mean correlation coefficient of `r mean(datMetaLargest$r)` and a median of  `r median(datMetaLargest$r)`).  See table 1 and  and figure 1 for a full list of descriptives about and histograms of the distribution of effect sizes in each subsample.
 
-It is noteworthy that the mean effect sizes seen across the whole sample are remarkably close to Cohen's suggested "medium" effect size benchmark value of r = .3, although the upper are the lower and upper quantiles (`r quantile(datComplete$r, c(.25, .75))`) are, respectivly, higher and lower than Cohen's "Small" and "Medium" effect size benchmarks (.1 and .5), an occourance that has been noted in other subfields of reserach also {Quintana, 2017 #836}.
+It is noteworthy that the mean effect sizes seen across the whole sample are remarkably close to Cohen's suggested "medium" effect size benchmark value of r = .3, although the upper are the lower and upper quantiles (`r quantile(datComplete$r, c(.25, .75))`) are, respectively, higher and lower than Cohen's "Small" and "Medium" effect size benchmarks (.1 and .5), an occurrence that has been noted in other subfields of research also {Quintana, 2017 #836}.
 
+```{r}
+histograms
+```
 
-Figure 1. Historgrams of reported effect sizes tranformed to correlation coefficents, for all results which could be transformed to correlation coefficients, the meta-anlytic subset, the  the first reported effect size in each paper, and the largest reported effect size in each paper.
+Figure 1. Histograms of reported effect sizes transformed to correlation coefficients, for all results which could be transformed to correlation coefficients, the meta-analytic subset, the  the first reported effect size in each paper, and the largest reported effect size in each paper.
 
 ```{r table_demo}
 # Calculating descriptives 
@@ -218,39 +220,55 @@ names(descriptivesTab) <- c("Subsample", "Effect size", "n", "Mean", "sd", "Min"
 
 ```
 
-Table 1. Descriptives of the reported effect sizes in this sample in $Fisher_z$ and correlation coefficent terms.
+Table 1. Descriptives of the reported effect sizes in this sample in $Fisher_z$ and correlation coefficient terms.
 `r kable(descriptivesTab)`
 
 ```{r plots2, fig.width = 10, fig.height=4.5}
 overallMean <- datComplete %>% 
+  #group_by(year, article) %>%
+  #summarise(z = mean(z))%>% 
   group_by(year) %>%
   summarise("Mean ES" = mean(z, na.rm = T))
 
 overallMedian <- datComplete %>% 
+  #group_by(year, article) %>%
+  #summarise(z = mean(z))%>% 
   group_by(year) %>%
   summarise("Median ES" = median(z, na.rm = T), "SD ES" = sd(z))
 
 metaMean <- datMeta %>% 
+  #group_by(year, article) %>%
+  #summarise(z = mean(z))%>% 
   group_by(year) %>%
   summarise("Mean ES (meta-analysis subset)" = mean(z, na.rm = T))
 
 metaMedian <- datMeta %>% 
+  #group_by(year, article) %>%
+  #summarise(z = mean(z))%>% 
   group_by(year) %>%
   summarise("Median ES (meta-analysis subset)" = median(z, na.rm = T), "SD meta ES" = sd(z))
 
 largestMean <- datMetaLargest %>% 
+  #group_by(year, article) %>%
+  #summarise(z = mean(z))%>% 
   group_by(year) %>%
   summarise("Mean largest ES" = mean(z))
 
 largestMedian <- datMetaLargest %>% 
+  #group_by(year, article) %>%
+  #summarise(z = mean(z))%>% 
   group_by(year) %>%
   summarise("Median largest ES" = median(z), "SD largest ES" = sd(z))
 
 firstMean <- datMetaFirst %>% 
+  #group_by(year, article) %>%
+  #summarise(z = mean(z))%>% 
   group_by(year) %>%
   summarise("Mean first ES" = mean(z))
 
 firstMedian <- datMetaFirst %>% 
+  #group_by(year, article) %>%
+  #summarise(z = mean(z))%>% 
   group_by(year) %>%
   summarise("Median first ES" = median(z), "SD first ES" = sd(z))
 
@@ -289,7 +307,7 @@ plot_grid(sumMeans, sumMedians,rel_widths =  c(1, 1.5))
 
 ```
 
-Figure [ESs over time]. Plots of the mean and median effect sizes per year (in Fisher Z transformed correlation coefficents) by the subsamples used in analyses below.
+Figure [ESs over time]. Plots of the mean and median effect sizes per year (in Fisher Z transformed correlation coefficients) by the subsamples used in analyses.
 
 
 ```{r exmaining effect sizes by statistic, fig.width = 10, fig.height=4.5}
@@ -316,7 +334,7 @@ propTest <- ggplot(trendInType, aes(x = year, y = prop, group = Statistic, fill 
 plot_grid(averageEffect,propTest, rel_widths = c(1, 1.25))
 ```
 
-Figure [effectByStat]. A plot of the mean effect sizes per year (left, in Fisher Z transformed correlation coefficents) as transformed from the various effect size measures, and of the proportion of reported statistical tests tests of each type included in the current analysis (right).
+Figure [effectByStat]. A plot of the mean effect sizes per year (left, in Fisher Z transformed correlation coefficients) as transformed from the various effect size measures, and of the proportion of reported statistical tests tests of each type included in the current analysis (right).
 
 
 ```{r fig.width = 10, fig.height=4.5}
@@ -377,7 +395,7 @@ Figure [trends by J]. A plot of the mean effect size reported in each journal by
 
 The proportion of t tests in this sample has increased over time, relative to F tests and correlations, see figure [effectByStat]. There are no obvious differences between the average reported effect size in each unit (mean $Fisher_z$ for correlations = `r mean(filter(datMeta, datMeta$Statistic == "r")$z)` , mean for F statistics = `r mean(filter(datMeta, datMeta$Statistic == "F")$z)`, mean for t statistics = `r mean(filter(datMeta, datMeta$Statistic == "t")$z)`), and the trend over time appears to be consistent among all sources of effect sizes (see figure [effectByStat]).
 
-The number of t, F and correlational statistical tests reported in APA style per article has increased considerably over time in this sample (i.e., of articles that reported at least one), from a mean of `r nPerArticlePre1991[2,2]` reported per article included in 1985 - 1990, to a mean of `r nPerArticlePost2008[2,2]` in the final 5 years included in this database (from 2009 - 2013). See figure [n tests] for a plot of the mean number of tests reported per article over time, and a plot of the number of articles reported in each journal included in this current analysis.
+The number of t, F and correlational statistical tests reported in APA style per article has increased considerably over time in this sample (i.e., of articles that reported at least one), from a mean of `r nPerArticlePre1991[2,2]` reported per article in 1985 - 1990, to a mean of `r nPerArticlePost2008[2,2]` from 2009 - 2013. Note that these averages only include articles with at least one reported statistical test. See figure [n tests] for a plot of the mean number of tests reported per article over time, and a plot of the number of articles reported in each journal included in this current analysis.
 
 ### Analysis Results
 
@@ -400,7 +418,7 @@ differenceAllMeta <- mod$b - modAll$b
  # ranef(mod)
 ```
 
-There is a low correlation between year of publication and effect size ($Fisher_z$) of r(`r length(datComplete$z)`) =`r corzy <- cor.test(datComplete$z, datComplete$year); corzy[4]`, p `r ifelse(round(corzy[[3]],3)==0, "< .001", round(corzy[[3]],3))`, 95% CI [`r corzy$conf.int[c(1,2)]`, or when averaging within articles r(`r nrow(averageESArticle)`]) = `r aggregatedCorzy[[4]]`, p `r ifelse(round(aggregatedCorzy[[3]],3) == 0, "< .001", round(aggregatedCorzy[[3]],3))`, 95% CI [`r aggregatedCorzy$conf.int[c(1,2)]`].
+An exploratory analysis shows that there is a low correlation between year of publication and effect size ($Fisher_z$) of r(`r length(datComplete$z)`) =`r corzy <- cor.test(datMeta$z, datMeta$year); corzy[4]`, p `r ifelse(round(corzy[[3]],3)==0, "< .001", round(corzy[[3]],3))`, 95% CI [`r corzy$conf.int[c(1,2)]`. When averaging the effect sizes seen in each article to avoid issues of non-independence of statistical tests within articles and estimating the correlation between year and effect size we find find a very weak association between effect size and year of publication, r(`r nrow(averageESArticle)`]) = `r aggregatedCorzy[[4]]`, p `r ifelse(round(aggregatedCorzy[[3]],3) == 0, "< .001", round(aggregatedCorzy[[3]],3))`, 95% CI [`r aggregatedCorzy$conf.int[c(1,2)]`].
 
 ```{r excluding all but largest effect in each paper and the first effect in each paper}
 
@@ -452,9 +470,13 @@ Io2Largest <- read_rds("data/Io2Largest.RDS")
 # write_rds(Io2First, "data/Io2First.RDS")
 Io2First <- read_rds("data/Io2First.RDS")
 
+
+hedgesGr <- function(d, df) {if(suppressWarnings( gamma(df/2) == Inf) ) {return(d)}
+    d * (gamma(df/2) / (sqrt(df/2) * gamma((df-1)/2))) }
+
 ```
 
-The multilevel meta-regression including estimates a $Z_{fisher}$ decrease per year of `r mod$b[2]`, 95% CI [`r mod$ci.lb[2]`, `r mod$ci.ub[2]`]. Unsurprisingly, there is a large amount of unexplained effect size hetrogeneity in effect sizes, `r niceMLMESum3(mod)[6,6]`, and an $I^2$ of `r Io2` {Nakagawa, 2012 #1023}, suggesting that `r round(Io2)`% of variance in effect sizes is due to effect size heterogeneity (i.e., variance in the true effect size differences), while the remaining `r 100-round(Io2)`%  is attributable to sampling variance. More variance is attributable to the article and effect level than to the project ($\sigma^2_{article}$ = `r round(mod$sigma2[2], 3)`, ($\sigma^2_{effect}$ = `r round(mod$sigma2[3], 3)`, compared to $\sigma^2_{journal}$ = `r round(mod$sigma2[1], 3)`), representing a very low intraclass correlation (ICC) for the journal of `r round(mod$sigma2[1] / sum(mod$sigma2), 3)`, and a low ICC for the article of `r round(mod$sigma2[2] / sum(mod$sigma2), 3)`.
+The multilevel meta-regression including estimates a $Z_{fisher}$ decrease per year of `r mod$b[2]`, 95% CI [`r mod$ci.lb[2]`, `r mod$ci.ub[2]`]. Unsurprisingly, there is a large amount of unexplained effect size heterogeneity in effect sizes, `r niceMLMESum3(mod)[6,6]`, and an $I^2$ of `r Io2` {Nakagawa, 2012 #1023}, suggesting that `r round(Io2)`% of variance in effect sizes is due to effect size heterogeneity (i.e., variance in the true effect size differences), while the remaining `r 100-round(Io2)`%  is attributable to sampling variance. More variance is attributable to the article and effect level than to the project ($\sigma^2_{article}$ = `r round(mod$sigma2[2], 3)`, ($\sigma^2_{effect}$ = `r round(mod$sigma2[3], 3)`, compared to $\sigma^2_{journal}$ = `r round(mod$sigma2[1], 3)`), representing a very low interclass correlation (ICC) for the journal of `r round(mod$sigma2[1] / sum(mod$sigma2), 3)`, and a low ICC for the article of `r round(mod$sigma2[2] / sum(mod$sigma2), 3)`.
 
 Table [nice MLME sum datMeta]. Multilevel meta-regression output including all data with valid standard errors, , $n_{effects}$ = `r nrow(datMeta)`, $n_{articles}$ = `r length(unique(datMetaFirst$article))`.
 `r kable(niceMLMESum3(mod))`
@@ -463,28 +485,41 @@ DIFFS WITH ALL DATA INCLUDING SEs which are a little shifty: `r differenceAllMet
 Table [nice MLME sum datAll].
 `r kable(niceMLMESum3(modAll))`
 
-Including only the first reported statistical test in each paper provides similar results, suggesting a small decrease over time, with a `r modFirst$b[2]` (95% CI [`r modFirst$ci.lb[2]`, `r modFirst$ci.ub[2]`]) $Z_{fisher}$ estimated yearly change acorrding to the model including only the first reported effect effects. The estimated $I^2$ value (`r Io2First`) is functionally identical to those of the dataset including all data, and looking at the variance partitioning more variance is attributable to the article level than to the journal level ($\sigma^2_{article}$ = `r round(modFirst$sigma2[2], 3)`, compared to $\sigma^2_{journal}$ = `r round(modFirst$sigma2[1], 3)`), representing a low intraclass correlation (ICC) for the journal of `r round(modFirst$sigma2[1] / sum(modFirst$sigma2), 3)`.
+Including only the first reported statistical test in each paper provides similar results, suggesting a small decrease over time, with a `r modFirst$b[2]` (95% CI [`r modFirst$ci.lb[2]`, `r modFirst$ci.ub[2]`]) $Z_{fisher}$ estimated yearly change according to the model including only the first reported effect effects. The estimated $I^2$ value (`r Io2First`) is functionally identical to those of the dataset including all data, and looking at the variance partitioning more variance is attributable to the article level than to the journal level ($\sigma^2_{article}$ = `r round(modFirst$sigma2[2], 3)`, compared to $\sigma^2_{journal}$ = `r round(modFirst$sigma2[1], 3)`), representing a low interclass correlation (ICC) for the journal of `r round(modFirst$sigma2[1] / sum(modFirst$sigma2), 3)`.
 
 Table [nice MLME sum datMetaFirst]. Multilevel meta-regression output including the first reported effect size in each article, $n_effects$ = `r nrow(datMetaFirst)`.
 `r kable(niceMLMESum2(modFirst))`
 
-Including only the largest effect reported in APA style in each paper leads to a different story, a predicted yearly $Z_{fisher}$ increase of `r modLargest$b[2]` (95% CI [`r modLargest$ci.lb[2]`, `r modLargest$ci.ub[2]`]). Again, the estimated $I^2$ value (`r Io2Largest`) is functionally identical to those of the dataset including all data. Again, more variance is again attributable to the article level than to the journal level ($\sigma^2_{article}$ = `r round(modLargest$sigma2[2], 3)`, compared to $\sigma^2_{journal}$ = `r round(modLargest$sigma2[1], 3)`) leading to a low intraclass correlation (ICC) for the journal of `r round(modLargest$sigma2[1] / sum(modLargest$sigma2), 3)`.
+Including only the largest effect reported in APA style in each paper leads to a different story, a predicted yearly $Z_{fisher}$ increase of `r modLargest$b[2]` (95% CI [`r modLargest$ci.lb[2]`, `r modLargest$ci.ub[2]`]). Again, the estimated $I^2$ value (`r Io2Largest`) is functionally identical to those of the dataset including all data. Again, more variance is again attributable to the article level than to the journal level ($\sigma^2_{article}$ = `r round(modLargest$sigma2[2], 3)`, compared to $\sigma^2_{journal}$ = `r round(modLargest$sigma2[1], 3)`) leading to a low interclass correlation (ICC) for the journal of `r round(modLargest$sigma2[1] / sum(modLargest$sigma2), 3)`.
 
 Table [nice MLME sum datMetaLargest]. Multilevel meta-regression output including just the largest reported effect size in each article, $n_effects$ = `r nrow(datMetaLargest)`.
 `r kable(niceMLMESum2(modLargest))`
 
 ### Discussion
 
-Overall, there was a small decrease in the mean effect sizes seen across the examined time period; going from a mean reported effect of  r = `r mean(filter(datComplete, year < 1990)$r)` between 1985 - 1990, to a mean reported effect size of  `r mean(filter(datComplete, year > 2008)$r)` in last five years included in this dataset, from 2009 to 2013. The results of the random effects meta-regression accounting for random effects nested within articles and journals supports this idea, showing an estiamted yearly decrease in effect sizes of `r abs(mod$b[2])` (95% CI [`r mod$ci.lb[2]`, `r mod$ci.ub[2]`]) in $Fisher_z$ units. This corresponds to an estimated correlation coefficient decrease of `r changeOverTime` in the estimated average effect size from 1985 to 2013. Looking just at the first reported statistical test in each article as a proxy for the main result of each paper, there is also a decrease in the average effect sizes reported over time, going from an average correlation of `r mean(filter(datMetaFirst, year < 1990)$r)` between 1985 - 1990, to a mean reported correlation of `r mean(filter(datMetaFirst, year > 2008)$r)` from 2009 to 2013. According to the reuslts of the meta-regression including only the first APA reported result in each paper, there is an estimated yearly decrease of `r abs(modFirst$b[2])` (95% CI [`r modFirst$ci.lb[2]`, `r modFirst$ci.ub[2]`]) in $Fisher_z$ units. Over the 28 year time period included in this database, this represents an estimated decrease of `r changeOverTimeFirst`in correlation coefficent terms. The estimated amount of change year-to-year is not large by any means, but the cummulative effect over time may be noticable, and these results suggest that the many papers suggesting that statistical power has been consistently low over time in psychology may in fact be optimistic (e.g., {Sedlmeier, 1989 #500;Szucs, 2017 #25}. If effect sizes have in fact decreased, the average power of psychological research will likely have also decreased slightly. 
+Overall, there was a small decrease in the mean effect sizes seen across the examined time period; going from a mean reported effect of  r = `r mean(filter(datMeta, year < 1990)$r)` between 1985 - 1990, to a mean reported effect size of  `r mean(filter(datMeta, year > 2008)$r)` in last five years included in this dataset, 2009 - 2013. The results of the random effects meta-regression accounting for random effects nested within articles and journals supports this idea, showing an estimated yearly decrease in effect sizes of `r abs(mod$b[2])` (95% CI [`r mod$ci.lb[2]`, `r mod$ci.ub[2]`]) in $Fisher_z$ units. This corresponds to an estimated correlation coefficient decrease of `r changeOverTime` in the estimated average effect size from 1985 to 2013. Looking just at the first reported statistical test in each article as a proxy for the main result of each paper, there is also a decrease in the average effect sizes reported over time, going from an average correlation of `r mean(filter(datMetaFirst, year < 1990)$r)` between 1985 - 1990, to a mean reported correlation of `r mean(filter(datMetaFirst, year > 2008)$r)` from 2009 to 2013. According to the results of the meta-regression including only the first APA reported result in each paper, there is an estimated yearly decrease of `r abs(modFirst$b[2])` (95% CI [`r modFirst$ci.lb[2]`, `r modFirst$ci.ub[2]`]) in $Fisher_z$ units. Over the 28 year time period included in this database, this represents an estimated decrease of `r changeOverTimeFirst`in correlation coefficient terms. The estimated amount of change year-to-year is not large by any means, but the cumulative effect over time may be noticeable, and these results suggest that the many papers suggesting that statistical power has been consistently low over time in psychology may in fact be optimistic (e.g., {Sedlmeier, 1989 #500;Szucs, 2017 #25}. If effect sizes have in fact decreased, the average power of psychological research will likely have also decreased slightly. 
 
-However, looking only at the largest reported effect in each paper, this trend is no longer apparent. There was an average correlation of `r mean(filter(datMetaLargest, year < 1990)$r)` between 1985 - 1990, compared to a mean of `r mean(filter(datMetaLargest, year > 2008)$r)` 2009 - 2013, a slight increase in the size of the largest reported effect in each paper. Results from multilevel meta-regression show an estiamted yearly increase of  `r abs(modLargest$b[2])` (95% CI [`r modLargest$ci.lb[2]`, `r modLargest$ci.ub[2]`]) in $Fisher_z$ units, or alternativly an estimated increase of r = `r changeOverTimeLargest` between 1985 and 2013. There are several possible explanations for this result. Firstly, the average size of the focal effects under study in psychological research may be increasing very slightly over time. Alternatively, this effect could be driven in part by a larger number of statistical tests being reported per article (see figure Figure [n tests]). Assuming that all performed tests are reported or at least that the largest observed test result is reported, if more analyses are being performed over time (and assuming that the tests performed are at least somewhat independent), selecting the largest reported effect out of each article should show an increased average effect size on the basis of sampling variability alone. 
+However, looking only at the largest reported effect in each paper, this trend is no longer apparent. There was an average correlation of `r mean(filter(datMetaLargest, year < 1990)$r)` in 1985 - 1990, compared to a mean of `r mean(filter(datMetaLargest, year > 2008)$r)` in 2009 - 2013, a slight increase in the size of the largest reported effect in each paper. Results from multilevel meta-regression show an estimated yearly increase of  `r abs(modLargest$b[2])` (95% CI [`r modLargest$ci.lb[2]`, `r modLargest$ci.ub[2]`]) in $Fisher_z$ units, or alternatively an estimated increase of r = `r changeOverTimeLargest` between 1985 and 2013. There are several possible explanations for this result. Firstly, this results could accurately demonstrate that the average size of the focal effects under study in psychological research may be increasing very slightly over time. Alternatively, this effect could be driven in part by a larger number of statistical tests being reported per article (see figure Figure [n tests]). Assuming that all performed tests are reported or at least that the largest observed test result is reported, if more analyses are being performed over time (and assuming that the tests performed are at least somewhat independent), selecting the largest reported effect out of each article should show an increased average effect size on the basis of sampling variability alone. 
 
-Other possible reasons ??? .. 
+Other possible reasons ??? .. !!!
 
-... In any case, the estimated change over time is so small as to be practically dismissible, with an estimated increase of just r = `r changeOverTimeLargest` over the 28 years included in this analysis.
+... In any case, the estimated change over time is so small as to be practically dismissible, with an estimated increase of just r = `r changeOverTimeLargest` over the 28 years of studies included in this analysis.
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
+# calculating the min significant effect for each test 
+minSigTestStat <- ifelse(datMeta$Statistic == F, qf(.05 , datMeta$df1, datMeta$df2, lower.tail = F), 
+        ifelse(datMeta$Statistic == F, qt(.95, datMeta$df2, lower.tail = F),
+              qnorm(.05, 0, sd = datMeta$SEz, lower.tail = F ))) 
+
+datMeta$minimumSignificantR <- esComp(x = minSigTestStat, df1 = datMeta$df1, df2 =  datMeta$df2, esType = datMeta$Statistic)
+
+minSignificant <- datMeta %>% 
+    group_by(year) %>%
+    summarise(MeanMinSigEffect = mean(minimumSignificantR), MedianMinSigEffect = median(minimumSignificantR), sd(minimumSignificantR), n = n()) %>%
+  gather(average_type, average, MeanMinSigEffect:MedianMinSigEffect, factor_key = T)
+
+
 trendsByTypeL <- datMetaLargest %>% 
     group_by(Statistic, year) %>%
     summarise("Mean ES" = mean(z), "SD first ES" = sd(z), n = n())
@@ -492,51 +527,80 @@ trendsByTypeL <- datMetaLargest %>%
 averageEffectL <- ggplot(trendsByTypeL, aes(x = year, y = `Mean ES`, group = Statistic, fill = Statistic, colour = Statistic)) + geom_line() + ylim(0,1.3) + geom_point() + ylab("Mean effect size (Fisher's z)") + xlab("Year") # + theme(legend.position="none")
 
 averageEffectL
+
+### Plotting the minimum effect size that would be statistically significant 
+
+ggplot(data = minSignificant, aes(year, average, group = average_type, colour = average_type)) + geom_line() + ylim(0,.15)
+
 ```
 
 Figure [effectbystatLargest]
 
-Limitaitons 
+#### Limitations and conclusions
 
-It should be noted that the sample is limited to articles publihsed in 5 APA journals in a limited time period (1985 - 2013). How broadly these findings generalise outside of this population is an open question. Secondly, the method used to collect effect sizes from the literature, using regular expressions to extract statistical tests reported in text in APA style has its limitiations. This method only captures statistical tests results reported in-text (i.e., not in tables) in APA style, and the observed effects could be driven by changes in reporting practices. Thirdly, there was no feasible way of identifying the main or focal analysis of each paper on a dataset this large, and is almost certain that the methods used in this paper are at best approximations. 
+It should be noted that the sample is limited to articles published in 5 APA journals in a limited time period (1985 - 2013). How broadly these findings generalize outside of this population is an open question. Secondly, the method used to collect effect sizes from the literature, using regular expressions to extract statistical tests reported in text in APA style has its limitations. This method only captures statistical tests results reported in-text (i.e., not in tables) in APA style, and the observed effects could be driven by changes in reporting practices. Thirdly, it was not feasible to manually identify the main or focal analysis of each paper in a dataset this large, and the methods used in this paper are approximations (evidenced by the fact that the results of these two analyses point in different directions). 
 
-It is also worth noting that in ANOVA designs or multiple regression where there is more than one factor or covariate included, the effect size conversion used leads to the exclusion of any non-focal variables’ variance. This means that a study which includes a variable as a covariate will lead to a larger observed effect size than a study which does not include the covariate, although the relationship between the the focal variable and a given outcome measure remains constant {Olejnik, 2003 #933}. This means that when the extracted effect sizes are based on F statistics, changes in the observed relationships over time could be caused by changing habits in the use of variables in regression or ANOVA designs. However, the trend amoung different statistical tests results appears to be consistent across statistical tests (see Figure [effectByStat]), and for many purposes (e.g., power analysis) the effect size of interest is accurately represented by this value. 
+It is also worth noting that in ANOVA designs or multiple regression where there is more than one factor or covariate included, the effect size conversion used leads to the exclusion of any non-focal variables’ variance. This means that a study which includes a variable as a covariate will lead to a larger observed effect size than a study which does not include the covariate, although the relationship between the focal variable and a given outcome measure remains constant {Olejnik, 2003 #933}. When the extracted effect sizes are based on F statistics, changes in the observed relationships over time could be caused by changing habits in the use of variables in regression or ANOVA designs. However, the trend among different statistical tests results appears to be consistent across statistical tests (see Figure [effectByStat]), and for many purposes (e.g., power analysis) the effect size of interest is accurately represented by this value. 
 
-Finally, given the effect of publication bias in psychological literature, it is unclear whether the results reported in journal articles are representative of the results that should be expected in planning an experiment {Fanelli, 2010 #222}{Rosenthal, 1979 #490}, and extreme caution is advised before they are used for this purpose. The effect sizes reported here are likely to be inflated to some degree due to publication and reporting biases. A recent re-analysis of all of the large scale replication studies (such as {Open Science Collaboration, 2015 #611}) suggests that the amount of effect size inflation seen in non-clinical behavioural science is approximately 19%, with a 95% highest probability density interval of 11% to 28% [cite publication bias paper].
+Finally, given the effect of publication bias in psychological literature, it is unclear whether the results reported in journal articles are representative of the results that should be expected in planning an experiment {Fanelli, 2010 #222}{Rosenthal, 1979 #490}, and caution is advised before they are used for this purpose (e.g., using these results to estimate the average effect sizes that should be expected across psychology). The effect sizes reported here are likely to be inflated to some degree due to publication and reporting biases {Hedges, 1992 #161}. A recent re-analysis of all of the large scale replication studies (such as {Open Science Collaboration, 2015 #611}) suggests that the amount of effect size inflation seen in non-clinical behavioral science is approximately 19%, with a 95% highest probability density interval of 11% to 28% [cite publication bias paper].
 
-```{r plots}
+```{r fig.width = 16, fig.height=7}
+predsForPlot <- predict(mod, 1984:2014 - mean(datMeta$year), transf = transf.ztor)
+predsForPlot$year <- 1984:2014
+predsForPlot <- data.frame(predsForPlot)
 
-ggplot(data = datMeta, aes(y = z, x = year, group = year))+ geom_jitter(alpha = .01, width = .3, height = 0) 
+ predsForPlotL <- predict(modLargest, 1984:2014 - mean(datMetaLargest$year), transf = transf.ztor)
+ predsForPlotL$year <- 1984:2014
+ predsForPlotL <- data.frame(predsForPlotL)
+ 
+ predsForPlotF <- predict(modFirst, 1984:2014 - mean(datMetaFirst$year), transf = transf.ztor)
+ predsForPlotF$year <- 1984:2014
+ predsForPlotF <- data.frame(predsForPlotF)
 
-ggplot(data = datMetaLargest, aes(y = z, x = year, group = year)) + geom_boxplot() 
 
-ggplot(data = datMetaLargest, aes(y = transf.ztor(z), x = year, group = year, colour = journal))+ geom_jitter(alpha = .1, width = .3, height = 0) 
+plotMod <- ggplot(data = datMeta, aes(y = r, x = year, group = year, colour = journal))+ geom_jitter(alpha = .01, width = .4, height = 0)+ ylab("Correlation coefficient") + xlab("Year") + guides(colour = guide_legend(override.aes = list(alpha = 1)))+ geom_line( data = predsForPlot, aes(x = year, y= ci.lb), inherit.aes = F, linetype = 2)+ geom_line( data = predsForPlot, aes(x = year, y= ci.ub), inherit.aes = F, linetype = 2) + geom_line(data = predsForPlot, aes(x = year, y = pred), inherit.aes = F) + geom_ribbon( data = predsForPlot, aes(x = year, ymin = ci.lb, ymax = ci.ub), inherit.aes = F, alpha = .1) + theme(legend.position="none") + ggtitle("All data")
+
+plotModLargest <- ggplot(data = datMetaLargest, aes(y = r, x = year, group = year, colour = journal))+ geom_jitter(alpha = .05, width = .4, height = 0)+ ylab("Correlation coefficient") + xlab("Year") + guides(colour = guide_legend(override.aes = list(alpha = 1)))+ geom_line( data = predsForPlotL, aes(x = year, y= ci.lb), inherit.aes = F, linetype = 2)+ geom_line( data = predsForPlotL, aes(x = year, y= ci.ub), inherit.aes = F, linetype = 2) + geom_line(data = predsForPlotL, aes(x = year, y = pred), inherit.aes = F) + geom_ribbon( data = predsForPlotL, aes(x = year, ymin = ci.lb, ymax = ci.ub), inherit.aes = F, alpha = .1)+ ggtitle("Largest reported effect")
+
+plotModFirst <- ggplot(data = datMetaFirst, aes(y = r, x = year, group = year, colour = journal))+ geom_jitter(alpha = .05, width = .4, height = 0)+ ylab("Correlation coefficient") + xlab("Year") + guides(colour = guide_legend(override.aes = list(alpha = 1)))+ geom_line( data = predsForPlotF, aes(x = year, y= ci.lb), inherit.aes = F, linetype = 2)+ geom_line( data = predsForPlotF, aes(x = year, y= ci.ub), inherit.aes = F, linetype = 2) + geom_line(data = predsForPlotF, aes(x = year, y = pred), inherit.aes = F) + geom_ribbon( data = predsForPlotF, aes(x = year, ymin = ci.lb, ymax = ci.ub), inherit.aes = F, alpha = .1) + theme(legend.position="none") + ggtitle("First reported effect")
+
+plot_grid(plotMod, plotModFirst, plotModLargest, nrow =  1, rel_widths = c(1, 1, 1.4))
 
 ```
 
-### Conclusion
-This analysis suggests that there has been at most a negligible increase in the average size of focal effects under analysis, and that there has been a decrease in the average size of effects under study in psychology research. Taken together with other research showing that statistical power has barely changed over time in psychology research to detect fixed effect sizes, this analysis suggests that the average power of statistical tests in psychology has decreased over time. However, whether this is true of the main or focal tests of each paper, arguably of more interest to practicing researchers, is unclear on the basis of this analysis. 
+Figure [jitter] A jitter plot of the reported effect sizes in this dataset plotted over time, with an overlaid  multilevel meta-regression plot (see Table [nice MLME sum datMeta] for model parameters, the plotted output has been converted to correlation coefficient units).
+
+#### Conclusion
+
+This analysis suggests that there was a decrease in the average size of the effects reported in psychology research papers from 1985 to 2013. It also suggests that there was at most a negligible increase in the average size of focal effects from 1985 to 2013. This result supports recent research suggesting that the average statistical power of psychology research has remained consistently low across time [meta-analysis].
 
 ## Appendix 
 
 ### Conversion 
-All statistical tests extracted were transformed into correlation coefficents following the methods reported in {Open Science Collaboration, 2015 #611}. t statistics were converted using:
+All statistical tests extracted were transformed into correlation coefficients as follows, using the methods reported in {Open Science Collaboration, 2015 #611}. 
+
+t statistics:
 
 $r\ =\ \sqrt{\frac{t_{obs}^2\times(1 / df)}{(t_{obs}^2 / df) + 1}}$
 
 Where $t_{obs}$ is the observed t statistic and $df$ is the degrees of freedom of the t test. 
 
-F statistics were converted using:
-$r\  =\ \sqrt{\frac{F_{obs}\times(df_1 / df_2)}{((F_{obs} \times df_1) / df_2) + 1}}*\sqrt{\frac{1}{df_1}}$
+F statistics:
+
+$r\  =\ \sqrt{\frac{F_{obs}\times(df_1 / df_2)}{((F_{obs} \times df_1) / df_2) + 1}} \times \sqrt{\frac{1}{df_1}}$
 
 Where $F_{obs}$ is the observed F statistic and $df_1$ is the degrees of freedom of the numerator and $df_2$ is degrees of freedom of the denominator.  
 
-And chi square statistics as
+Chi square statistics:
+
 $r\ =\ \sqrt{\frac{\chi_{obs}}{df + 2}}$
 
-All values were then transformed into fisher Z transformed correlation coefficents using:
-$z = \frac 12 \times \ln(\frac{1 + r}{1 - r})$
+Where $chi_{obs}$ is the observed $chi^2$ statistic and $df$ is the associated degrees of freedom.
 
-And standard errors for these statistics when derrived from F tests with denominator degrees of freedom of 1, t tests, and correlation coefficents were estimated as:
+All values were then transformed into fisher Z transformed correlation coefficients using:
 
-$\sigma_\bar{z} = \frac{1}{\sqrt{n - 3}}$ 
+$z\ = \frac 12 \times \ln(\frac{1 + r}{1 - r})$
+
+Standard errors for these statistics when derived from F tests with denominator degrees of freedom of 1, t tests, and correlation coefficients were estimated as:
+
+$\sigma_\bar{z}\ =\ \frac{1}{\sqrt{n - 3}}$ 
