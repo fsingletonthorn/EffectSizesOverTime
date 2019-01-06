@@ -564,7 +564,7 @@ plotModLargest <- ggplot(data = datMetaLargest, aes(y = r, x = year, group = yea
 
 plotModFirst <- ggplot(data = datMetaFirst, aes(y = r, x = year, group = year, colour = journal))+ geom_jitter(alpha = .05, width = .4, height = 0)+ ylab("Correlation coefficient") + xlab("Year") + guides(colour = guide_legend(override.aes = list(alpha = 1)))+ geom_line( data = predsForPlotF, aes(x = year, y= ci.lb), inherit.aes = F, linetype = 2)+ geom_line( data = predsForPlotF, aes(x = year, y= ci.ub), inherit.aes = F, linetype = 2) + geom_line(data = predsForPlotF, aes(x = year, y = pred), inherit.aes = F) + geom_ribbon( data = predsForPlotF, aes(x = year, ymin = ci.lb, ymax = ci.ub), inherit.aes = F, alpha = .1) + theme(legend.position="none") + ggtitle("First reported effect")
 
-plot_grid(plotMod, plotModFirst, plotModLargest, nrow =  1, rel_widths = c(1, 1, 1.4))
+plot_grid(plotMod, plotModFirst, plotModLargest, nrow =  1, rel_widths = c(1, 1, 1.22))
 
 ```
 
