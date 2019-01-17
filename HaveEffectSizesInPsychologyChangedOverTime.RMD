@@ -401,11 +401,12 @@ The number of t, F and correlational statistical tests reported in APA style per
 ### Analysis Results
 
 ```{r data analaysis}
-
+# Running the meta analysis, commented out for speed. 
 #mod <- lme(z ~ 1 + I(year - mean(year)), random = ~ 1 |  journal / article / id,  weights = varFixed(~SEz^2), data = datMeta, control = lmeControl(sigma = 1, apVar = T))
 #write_rds(mod, "data/mod.RDS")
 mod <- read_rds("data/mod.RDS")
 
+# just making pretty output 
 niceModSum <- data_frame(Estimate = c(mod$coefficients$fixed, rep(NA,4)), 
            "95% CI LB" = c(intervals(mod)$fixed[,1],rep(NA, 4)),
            "95% CI UB" = c(intervals(mod)$fixed[,3],rep(NA, 4)),
@@ -436,6 +437,7 @@ niceModSum <- data_frame(Estimate = c(mod$coefficients$fixed, rep(NA,4)),
 # modAll <- rma.mv(z, V = SEz^2, random = ~  1 |  journal / article / id, mods = (year-mean(year)), data = datComplete)
 # modAll  <- lme(z ~ 1 + I(year - mean(year)), random = ~ 1 |  journal / article / id,  weights = varFixed(~SEz^2), data = # datComplete, control = lmeControl(sigma = 1, apVar = T))
 # write_rds(modAll, path = "data/modAll.RDS")
+
 modAll <- read_rds(path = "data/modAll.RDS")
 # modAll <- read_rds("data/modAll.RDS")
 # calculating difference between models
