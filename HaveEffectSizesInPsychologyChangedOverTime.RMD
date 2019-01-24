@@ -1,7 +1,6 @@
 ---
 title: "Effect Sizes Over Time"
 author: "Felix Singleton Thorn"
-date: "10 December 2018"
 output: word_document
 ---
 
@@ -594,7 +593,7 @@ Figure [jitter] A jitter plot of the reported effect sizes in this dataset plott
 
 #### Conclusion
 
-This analysis suggests that there was a decrease in the average size of the effects reported in psychology research papers from 1985 to 2013. It also suggests that there was at most a negligible increase in the average size of focal effects from 1985 to 2013, although the direction of this change is uncertain. This result supports recent research suggesting that the average statistical power of psychology research has remained consistently low across time [meta-analysis], and highlights the need for researchers to consider the expected effect sizes of their reserach during the planning of their studies in order to avoid unknowingly performing underpowered or imprecise reserach. 
+This analysis suggests that there was a decrease in the average size of the effects reported in psychology research papers from 1985 to 2013. It also suggests that there was at most a negligible increase in the average size of focal effects from 1985 to 2013, although the direction of this change is uncertain. This result supports recent research suggesting that the average statistical power of psychology research has remained consistently low across time [meta-analysis], and highlights the need for researchers to consider the expected effect sizes of their research during the planning of their studies in order to avoid unknowingly performing underpowered or imprecise research. 
 
 ## Appendix 
 
