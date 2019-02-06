@@ -608,7 +608,7 @@ Where $t_{obs}$ is the observed t statistic and $df$ is the degrees of freedom o
 
 F statistics:
 
-$r\  =\ \sqrt{\frac{F_{obs}\times(df_1 / df_2)}{((F_{obs} \times df_1) / df_2) + 1}} \times \sqrt{\frac{1}{df_1}}$
+$r\  =\ \sqrt{\frac{F_{obs}\times(df_1 / df_2)}{F_{obs} \times (df_1 / df_2) + 1}} \times \sqrt{\frac{1}{df_1}}$
 
 Where $F_{obs}$ is the observed F statistic and $df_1$ is the degrees of freedom of the numerator and $df_2$ is degrees of freedom of the denominator.  
 
