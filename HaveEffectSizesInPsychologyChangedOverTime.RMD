@@ -152,7 +152,7 @@ All test statistics were converted to Fisher Z transformed correlation coefficie
 Multilevel meta-regression was performed to examine the relationship between year of publication and reported effect sizes. 
 $ES_j = \gamma_0 + \gamma_1Year + u_{id} + u_{article} + u_{journal} + e_{j}$
 
-The multilevel-meta-regression includes random effects for individual tests ($u_{id}$), articles ($u_{article}$) and journals ($u_{journal}$), and includes year of publication of each article as a fixed effect ($\gamma_1Year$). This analysis was performed using nlme {Pinheiro, 2018 #1027} in R version 3.5.1 {R Development Core Team, 2018 #314} using restricted maximum liklihood estimation. 
+The multilevel-meta-regression includes random effects for individual tests ($u_{id}$), articles ($u_{article}$) and journals ($u_{journal}$), and includes year of publication of each article as a fixed effect ($\gamma_1Year$). This analysis was performed using nlme {Pinheiro, 2018 #1027} in R version 3.5.1 {R Development Core Team, 2018 #314} using restricted maximum likelihood estimation. 
 
 As a check on whether the exclusion of F statistics with $df_1$ of greater than one and $\chi^2$ analyses is likely to change the results, this multilevel model was reperformed including all of the statistical tests for which correlations could be estimated and estimating standard errors as $\sqrt{1/(df_2 - 5)}$ for F tests and $\sqrt{1/(df - 5)}$ for $\chi^2$ tests. This anlysis includes a total of n = `r nrow(datComplete)` effects after excluding all invalid results (i.e., analyses where it was not possible to estimate a standard error or correlation using the above methods due to issues such as degrees of freedom below 5 or impossible test statistic values being given). This analysis led to estimates of the change in effect sizes over time which are practically identical to those presented below (i.e., which differ by < `r 0.002 # calculated below see "differenceAllMeta"`).
 
@@ -162,7 +162,7 @@ Due to the large sample size included in this analysis, it was not feasible to m
 
 $ES_j = \gamma_0 + \gamma_1Year + u_{article} + u_{journal} + e_{j}$
 
-These multilevel-meta-regression includes random effects for individual articles $u_{article}$ and journal $u_{journal}$, and includes year of publication of each article as a fixed effect ($\gamma_1Year$). These analyses did not include random effects for each statistical test, as each article only provides a single effect size. Valid standard errors were calculable for effect sizes from a total of `r nrow(datMetaLargest)` articles for analyses (a) and (b), all of which are included in these analyses. These analyses were performed using the R package metafor {Viechtbauer, 2010 #796} using restricted maximum liklihood estiamtion.
+These multilevel-meta-regression includes random effects for individual articles $u_{article}$ and journal $u_{journal}$, and includes year of publication of each article as a fixed effect ($\gamma_1Year$). These analyses did not include random effects for each statistical test, as each article only provides a single effect size. Valid standard errors were calculable for effect sizes from a total of `r nrow(datMetaLargest)` articles for analyses (a) and (b), all of which are included in these analyses. These analyses were performed using the R package metafor {Viechtbauer, 2010 #796} using restricted maximum likelihood estimation.
 
 ### Deviations from preregistration
 
@@ -211,7 +211,7 @@ descriptivesTab[c(7,8),] <- psych::describe(datMetaFirst[,c("r", "z")], skew = T
 names(descriptivesTab)[1] <- "Subsample"
 descriptivesTab <- as.tibble(descriptivesTab)
 descriptivesTab$Subsample <- c("All data", "All data", "Meta-analytic subset", "Meta-analytic subset", "Largest reported effect","Largest reported effect", "First reported effect", "First reported effect")
-descriptivesTab$`Effect size` <- rep(c("Fisher's z", "Correlation"), 4)
+descriptivesTab$`Effect size` <- rep(c("Correlation","Fisher's z"), 4)
 
 descriptivesTab <- descriptivesTab[,c(1,16,2,3,4,8,14,5,15,9,10,11,12)]
 names(descriptivesTab) <- c("Subsample", "Effect size", "n", "Mean", "sd", "Min","25th percentile", "Median", "75th percentile", "Max", "Range", "Skew", "Kurtosis")
@@ -332,7 +332,7 @@ propTest <- ggplot(trendInType, aes(x = year, y = prop, group = Statistic, fill 
 plot_grid(averageEffect,propTest, rel_widths = c(1, 1.25))
 ```
 
-Figure [effectByStat]. A plot of the mean effect sizes per year (left, in Fisher Z transformed correlation coefficients) as transformed from the various effect size measures, and of the proportion of reported statistical tests tests of each type included in the current analysis (right).
+Figure [effectByStat]. A plot of the mean effect sizes per year (left, in Fisher Z transformed correlation coefficients) as transformed from the various effect size measures, and of the proportion of reported statistical tests of each type included in the current analysis (right).
 
 
 ```{r fig.width = 10, fig.height=4.5}
