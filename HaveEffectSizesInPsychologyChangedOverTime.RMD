@@ -12,18 +12,9 @@ options(scipen=1, digits=3, knitr.kable.NA = '')
 
 # Custom functions: 
 # This just tables the output of meta-analyses nicely
-niceMLMESum3 <- function(REMod) {
-  data_frame(Estimate = c(REMod$b[1], REMod$b[2], rep(NA, 4)), "95% CI LB" = c(REMod$ci.lb, rep(NA, 4)), "95% CI UB" = c(REMod$ci.ub, rep(NA, 4)), SE = c(REMod$se,  rep(NA, 4)), p = c(ifelse(REMod$pval<.001, "< .001", REMod$pval),  rep(NA, 4)), 
-             "Random effects" = c(NA, NA, paste0("Journal variance = ", round(REMod$sigma2[1], 3), ", n = ", 
-                                             REMod$s.nlevels[1]),
-                                  paste0("Article variance = ", round(REMod$sigma2[2], 3), ", n = ", REMod$s.nlevels[2]), 
-                                  paste0("Effect variance = ", round(REMod$sigma2[3], 3), ", n = ", REMod$s.nlevels[3]),
-                                  paste0("QE(",REMod$k-1, ") = ", round(REMod$QE, 2),  ", p ", ifelse(REMod$QEp <.001, "< .001", paste("=" , round(REMod$QEp, 2))))))
-}
-
-
 niceMLMESum2 <- function(REMod) {
-  data_frame(Estimate = c(REMod$b[1], REMod$b[2], rep(NA, 3)), "95% CI LB" = c(REMod$ci.lb, rep(NA, 3)), "95% CI UB" = c(REMod$ci.ub, rep(NA, 3)), SE = c(REMod$se,  rep(NA, 3)), p = c(ifelse(REMod$pval<.001, "< .001", REMod$pval),  rep(NA, 3)), 
+  data_frame(" " = c("Intercept", "Year",rep(NA,3)), 
+                        Estimate = c(REMod$b[1], REMod$b[2], rep(NA, 3)), "95% CI LB" = c(REMod$ci.lb, rep(NA, 3)), "95% CI UB" = c(REMod$ci.ub, rep(NA, 3)), SE = c(REMod$se,  rep(NA, 3)), p = c(ifelse(REMod$pval<.001, "< .001", round(REMod$pval,2)),  rep(NA, 3)), 
              "Random effects" = c(NA, NA, paste0("Journal variance = ", round(REMod$sigma2[1], 3), ", n = ", 
                                              REMod$s.nlevels[1]),
                                   paste0("Article variance = ", round(REMod$sigma2[2], 3), ", n = ", REMod$s.nlevels[2]), 
@@ -131,11 +122,11 @@ changeOverTimeLargest <- transf.ztor(predict(modLargest, (2013 - mean(datMetaLar
 This article uses a mixed effects meta-regression framework to estimate the change in average effect sizes in psychological research using a database of over 130,000 effect size estimates from over 9,000 articles published in 5 APA journals from 1985 to 2013 {Nuijten, 2015 #550}. The results of this analysis suggest that the average effect size reported in psychological research is decreasing by `r mod$coefficients$fixed[2]` (95% CI [`r intervals(mod)$fixed[2,1]`, `r intervals(mod)$fixed[2,3]`]) Fisher Z transformed correlation coefficient units per year, representing an estimated correlation coefficient decrease of `r changeOverTime` from 1985 to 2013. Possibly of more interest to researchers is the question of how main or focal analyses have changed over time in psychology. Examining just the first reported test of each paper as a proxy for the main analysis shows broad agreement with analyses including all results (a `r modFirst$b[2]` estimated yearly change, 95% CI [`r modFirst$ci.lb[2]`, `r modFirst$ci.ub[2]`]). However, looking at the largest effect reported in each paper suggests that there has been a slight increase in effect sizes over time, a `r options(digits=4); modLargest$b[2]` (95% CI [`r modLargest$ci.lb[2]`,  `r modLargest$ci.ub[2]`]) `r options(digits=3)` Fisher z score change per year, an estimated increase from 1985 to 2013 of `r changeOverTimeLargest` in correlation coefficient units. Together these results suggest that there has been a small decrease in the average effect sizes reported in psychology over time, although the degree to which this decrease is reflective of a decrease in the size of the focal or main effects under study in psychology is an open question.
 
 ## Introduction
-An important question in understanding the history of psychological science is whether effect sizes have changed over time. Are we studying smaller effects over time, having already studied the “low hanging fruit” {Baumeister, 2016 #1022}? Or could methodological reforms and the increasing awareness of the importance of measurement in research design lead to increased effect sizes {Nelson, 2018 #750;Greenland, 2017 #713;Loken, 2017 #164}? This paper uses an extensive database of over 130,000 effect size estimates from over 10,000 articles published in 5 APA journals from 1985 to 2013 collected as part of {Nuijten, 2015 #550} to examine how effect sizes have changed in psychological research over this period. 
+An important question in understanding the history of psychological science is whether and how effect sizes have changed over time. Are we studying smaller effects over time, having already studied the “low hanging fruit” {Baumeister, 2016 #1022}? Or could methodological reforms and the increasing awareness of the importance of measurement in research design lead to increased effect sizes {Nelson, 2018 #750;Greenland, 2017 #713;Loken, 2017 #164}? This paper uses an extensive database of over 130,000 effect size estimates from almost 10,000 articles published in 5 APA journals from 1985 to 2013 collected as part of {Nuijten, 2015 #550} to examine how effect sizes have changed in psychological research over this period.
 
 The question of how effect sizes have changed over time is both of intrinsic interest, and has important implications for understanding the results of large scale statistical power surveys of psychological research (e.g., {Cohen, 1962 #487;Rosnow, 1989 #37;Szucs, 2017 #25}). Most of the efforts to estimate the statistical power of psychological research have used Cohen's effect size benchmarks {Cohen, 1988 #562}, and as such any comparison of these studies over time assumes that effect sizes have been stable. According to our recent meta-analysis 46 power surveys including over 8,000 individual studies published from 1932-2014 [cite meta-analysis], the average statistical power of psychological research is  .23 95% CI [.17, .29]  for "small" effect sizes (effect sizes equivalent to r = .1 or Cohen's d = .2), .62 95% CI [.55, .69] to detect medium effects (r = .3 or Cohen's d = 0.5)), and .80, 95% CI [.68, .92] to detect large effects (effects equivalent to 0.8 Cohen's d or r = .5) [cite meta-analysis]. This same analysis also suggests that there has been little-to-no change in the average statistical power of research conducted in psychology to detect these effect size benchmarks over time. However, in order to know whether the statistical power of psychological research has changed over time, it is necessary to know whether the effect sizes under study in psychological research have changed. 
 
-A small number of previous studies have extracted effect size benchmarks from psychological research in domains as varied as social {Richard, 2003 #603}, management {Paterson, 2015 #817; Bosco, 2015 #157} and clinical psychology {Haase, 1982 #516}. Estimates of the average effect size in various subfields range from an mean correlation coefficient of .21 seen in social psychology meta-analyses {Richard, 2003 #603}, to a mean effect of 0.94 Cohen’s d (equivalent to r = .42) seen across Statistical tests reported in recent cognitive neuroscience, psychology and psychiatry articles published in high impact journals {Szucs, 2017 #25}. However, we have not identified any studies which have adequate statistical precision to make strong inferences about the size or direction of the change in effect sizes over time. We know of just one study which attempted to examine the degree and direction of change in average effect sizes over time. {Paterson, 2015 #817}, which found a small negative correlation (r = -.05, 95% CI [`r transf.rtoz(-.05) - (1.96 * 1/sqrt(776 - 3))`, `r transf.rtoz(-.05) + (1.96 * 1/sqrt(776 - 3))`]) between the reported magnitude of correlations and their year of publication in 776 meta-analytic conclusions from meta-analyses in management psychology. The current analysis  allows us to examine the average effect size reported in psychological research, and allows us to precisely estimate the change in effect sizes over time across fields of psychological research.
+A small number of previous studies have extracted effect size benchmarks from psychological research in domains as varied as social {Richard, 2003 #603}, management {Paterson, 2015 #817; Bosco, 2015 #157} and clinical psychology {Haase, 1982 #516}. Estimates of the average effect size in various subfields range from an mean correlation coefficient of .21 in social psychology meta-analyses {Richard, 2003 #603}, to a mean effect of 0.94 Cohen’s d (equivalent to r = .42) seen across Statistical tests reported in recent cognitive neuroscience, psychology and psychiatry articles published in high impact journals {Szucs, 2017 #25}. However, we have not identified any studies which have adequate statistical precision to make strong inferences about the size or direction of the change in effect sizes over time. We know of just one study which attempted to examine the degree and direction of change in average effect sizes over time. {Paterson, 2015 #817}, which found a small negative correlation (r = -.05, 95% CI [`r transf.rtoz(-.05) - (1.96 * 1/sqrt(776 - 3))`, `r transf.rtoz(-.05) + (1.96 * 1/sqrt(776 - 3))`]) between the reported magnitude of correlations and their year of publication in 776 meta-analytic conclusions from meta-analyses in management psychology. The current analysis allows us to examine the average effect size reported in psychological research, and allows us to precisely estimate the change in effect sizes over time across fields of psychological research.
 
 ### Method
 
@@ -154,7 +145,9 @@ $ES_j = \gamma_0 + \gamma_1Year + u_{id} + u_{article} + u_{journal} + e_{j}$
 
 The multilevel-meta-regression includes random effects for individual tests ($u_{id}$), articles ($u_{article}$) and journals ($u_{journal}$), and includes year of publication of each article as a fixed effect ($\gamma_1Year$). This analysis was performed using nlme {Pinheiro, 2018 #1027} in R version 3.5.1 {R Development Core Team, 2018 #314} using restricted maximum likelihood estimation. 
 
-As a check on whether the exclusion of F statistics with $df_1$ of greater than one and $\chi^2$ analyses is likely to change the results, this multilevel model was reperformed including all of the statistical tests for which correlations could be estimated and estimating standard errors as $\sqrt{1/(df_2 - 5)}$ for F tests and $\sqrt{1/(df - 5)}$ for $\chi^2$ tests. This anlysis includes a total of n = `r nrow(datComplete)` effects after excluding all invalid results (i.e., analyses where it was not possible to estimate a standard error or correlation using the above methods due to issues such as degrees of freedom below 5 or impossible test statistic values being given). This analysis led to estimates of the change in effect sizes over time which are practically identical to those presented below (i.e., which differ by < `r 0.002 # calculated below see "differenceAllMeta"`).
+As a check on whether the exclusion of F statistics with $df_1$ of greater than one and $\chi^2$ analyses is likely to change the results, this multilevel model was reperformed including all of the statistical tests for which correlations could be estimated and estimating standard errors as $\sqrt{1/(df_2 - 5)}$ for F tests and $\sqrt{1/(df - 5)}$ for $\chi^2$ tests. This analysis includes a total of n = `r nrow(datComplete)` effects after excluding all invalid results (i.e., analyses where it was not possible to estimate a standard error or correlation using the above methods due to issues such as degrees of freedom below 5 or impossible test statistic values being given). This analysis led to estimates of the change in effect sizes over time which are practically identical to those presented below (i.e., which differ by < `r 0.002 # calculated below see "differenceAllMeta"`). 
+
+Additional exploratory analyses were performed to assess the robustness of these results to model specification changes. Including random slopes by journal, fixed effects for test statistic type, allowing the change over time to vary by test statistic type, or not accounting for the variance of each effect size estimates did not lead to any substantial difference in the results of this analysis. See supplementary materials two for a more in depth discussion of each of these models.  
 
 ### Accounting for peripheral tests
 
@@ -166,7 +159,7 @@ These multilevel-meta-regression includes random effects for individual articles
 
 ### Deviations from preregistration
 
-All analyses were tested and developed on a subset of 0.01% of the dataset before being pre-registered. After preregistration, 36 additional reported test statistics were excluded using non-preregistered rules (3 which reported an r of 1, leading to an infinite Cohen's z, and 33 test which were parsed by statcheck as reporting impossible test statistics). All random effects meta-regressions were performed with an additional random effect at the lowest level (i.e., at the effect level) than was preregistered, as this was thought to be more conceptually appropriate as all tests within a paper cannot be assumed to have estimated the same parameter. The analyses performed on all data (i.e., those which do not attempt exclude peripheral tests) were estimated using the R package nlme in lieu of metafor as the memory requirements of metafor exceeded those that we had easy access to (requiring > 160 gbs of RAM). The results should be identical for all practical purposes (e.g., reperforming the two analyses which attempted to account for peripheral analyses in nlme lead to parameter estimates that differed by less than .000001 from that produced using metafor). 
+All analyses were tested and developed on a subset of 0.01% of the dataset before being preregistered. After preregistration, 36 additional reported test statistics were excluded using non-preregistered rules (3 which reported an r of 1, leading to an infinite Cohen's z, and 33 test which were parsed by statcheck as reporting impossible test statistics). All random effects meta-regressions were performed with an additional random effect at the lowest level (i.e., at the effect level) than was preregistered, as this was thought to be more conceptually appropriate as all tests within a paper cannot be assumed to have estimated the same parameter. The analyses performed on all data (i.e., those which do not attempt exclude peripheral tests) were estimated using the R package nlme in lieu of metafor as the memory requirements of metafor exceeded those that we had easy access to (requiring > 160 gbs of RAM). The results should be identical for all practical purposes (e.g., reperforming the two analyses which looked at just the first reported effect or the largest reported effect in nlme lead to parameter estimates that differed by less than .000001 from that produced using metafor, and estimated standard errors less than `r max(abs(c(0.0870892894  - 0.0873152, 0.0006548126 - 0.0006565, 0.0371372978 - 0.0421990 , 0.0004857659 - 0.0005162))) # these are the standard errors for the intercept and the year coefficient from the model estimated with metafor (first) vs nlme (second), for the largest effects (first 2 comparisions) and first reported effects in each paper (comparisons 3 and 4)`). Any effects reported as "exploratory" were not preregistered. 
 
 ## Results
 ### Descriptives
@@ -404,7 +397,8 @@ The number of t, F and correlational statistical tests reported in APA style per
 mod <- read_rds("data/mod.RDS")
 
 # just making pretty output 
-niceModSum <- data_frame(Estimate = c(mod$coefficients$fixed, rep(NA,4)), 
+niceModSum <- data_frame(" " = c("Intercept", "Year",rep(NA,4)), 
+  Estimate = c(mod$coefficients$fixed, rep(NA,4)), 
            "95% CI LB" = c(intervals(mod)$fixed[,1],rep(NA, 4)),
            "95% CI UB" = c(intervals(mod)$fixed[,3],rep(NA, 4)),
            SE = c(diag(sqrt(summary(mod)$varFix)), rep(NA, 4)),
@@ -416,9 +410,6 @@ niceModSum <- data_frame(Estimate = c(mod$coefficients$fixed, rep(NA,4)),
                                 paste0("QE(", nrow(datMeta) - 1, ") = ", round(sum(residuals(mod, type="pearson")^2),2), 
                                        ", p = < .001") 
                                 ))
-
-
-
 
 ####   I^2 for ML metas =  following Nakagawa, 2012 #1023}
 # W <- diag(1/datMeta$SEz^2)
@@ -490,7 +481,6 @@ Io2Largest <- read_rds("data/Io2Largest.RDS")
 #   Io2First <- 100 * sum(modFirst$sigma2) / (sum(modFirst$sigma2) + (modFirst$k-modFirst$p)/sum(diag(P)))
 # write_rds(Io2First, "data/Io2First.RDS")
 Io2First <- read_rds("data/Io2First.RDS")
-
 
 ```
 
@@ -590,9 +580,9 @@ Figure [jitter] A jitter plot of the reported effect sizes in this dataset plott
 
 Overall, this analysis suggests that there was a decrease in the average size of the effects reported in psychology research papers from 1985 to 2013. However, the degree to which this decrease is reflective of a decrease in the size of the focal or main effects under study in psychology remains an open question. This result supports recent research arguing that the average statistical power of psychology research has remained consistently low across time [meta-analysis], and highlights the need for researchers to consider what effect sizes they expect to see during the planning of their studies in order to avoid unknowingly performing underpowered or imprecise research.
 
-## Appendix 
+## Supplementary materials
 
-### Conversions
+### 1. Conversions
 All statistical tests extracted were transformed into correlation coefficients as follows, using the methods reported in {Open Science Collaboration, 2015 #611}. 
 
 t statistics:
@@ -619,4 +609,147 @@ $z\ = \frac 12 \times \ln{\Big(\frac{1 + r}{1 - r}}\Big)$
 
 Standard errors for these statistics when derived from F tests with denominator degrees of freedom of 1, t tests, and correlation coefficients were estimated as:
 
-$\sigma_\bar{z}\ =\ \frac{1}{\sqrt{n - 3}}$ 
+$\sigma_{\bar{z}}\ =\ \frac{1}{\sqrt{n - 3}}$ 
+
+
+### Supplementary materials 2. Additional exploratory analyses
+
+##### Ignoring sampling variance and including all data
+
+An alternative approach to analyzing this data is to ignore the sampling variances of each reported effect size and analyse the data using a typical multilevel model with a main effect for year and random effects for article and journal. In this approach, we no longer include random effects at the individual effect-size level, as we could not estimate both residual and effect level variances (both being random effects at the individual effect-size level).
+
+$ES_j = \gamma_0 + \gamma_1Year + u_{article} + u_{journal} + e_{ij}$
+
+```{r}
+options(digits=5, scipen = 5)
+# modNoWeights <- lme(z ~ 1 + I(year - mean(year)), random = ~ 1 |  journal / article, data =  datComplete)
+# write_rds(modNoWeights, "data/modNoWeights.RDS")
+modNoWeights <- read_rds("data/modNoWeights.RDS")
+
+```
+
+```{r}
+kable(
+data_frame(" " = c("Intercept", "Year",rep(NA,4)), 
+  Estimate = c(modNoWeights$coefficients$fixed, rep(NA,4)), 
+           "95% CI LB" = c(intervals(modNoWeights)$fixed[,1],rep(NA, 4)),
+           "95% CI UB" = c(intervals(modNoWeights)$fixed[,3],rep(NA, 4)),
+           SE = c(diag(sqrt(summary(modNoWeights)$varFix)), rep(NA, 4)),
+           "p" = c("< .001", "< .001", rep(NA, 4)),
+           "Random effects" = c(rep(NA, 2), 
+                                paste0("Residual variance = ", round(as.numeric(VarCorr(modNoWeights))[5], 3), ", n = ", nrow(datMeta)),
+                                paste0("Article variance = ", round(as.numeric(VarCorr(modNoWeights))[4], 3), ", n = ",length(unique(datMeta$article))),
+                                paste0("Journal variance = ", round(as.numeric(VarCorr(modNoWeights))[2], 3), ", n = ", length(unique(datMeta$journal))),
+                                paste0("QE(", nrow(datMeta) - 1, ") = ", round(sum(residuals(modNoWeights, type="pearson")^2),2), 
+                                       ", p = < .001") 
+                                )) 
+)
+```
+
+Using this approach lead to a less extreme year by year difference with the estimated change per year changing by a $Fisher_z$ of `r fixef( modNoWeights)[2] - fixef( mod)[2]`. Otherwise the model is quite similar. Otherwise, this model shows similar results.
+
+
+##### Fixed effects for statistic type 
+
+It also is possible to estimate fixed effects for each of the included statistical tests (F, r and t tests). Given that these different statistical approaches would be used under different scenarios, this approach seems reasonable. This analysis is otherwise identical to that presented in the main text (i.e., it examines the `r nrow(datMeta)` effects for which valid standard errors were developed and accounts for the imprecision in each estimated effect size).
+
+$ES_j = \gamma_0 + \gamma_1Year + \gamma_2t_{dummy} + \gamma_3r_{dummy} + u_{id} + u_{article} + u_{journal} + e_{j}$
+
+```{r}
+# write_rds(modFEST, "data/modFEST")
+# modFEST <- lme(z ~ 1 + I(year - mean(year)) + Statistic, random = ~ 1 |  journal / article / id,  weights = varFixed(~SEz^2), data = datMeta, control = lmeControl(sigma = 1, apVar = T))
+# write_rds(modFEST, "data/modFEST")
+modFEST <- read_rds("data/modFEST")
+
+```
+
+
+```{r}
+kable(
+data_frame(" " = c("Intercept", "Year", "r" ,"t" , rep(NA,4)), 
+  Estimate = c(modFEST$coefficients$fixed, rep(NA,4)), 
+           "95% CI LB" = c(intervals(modFEST)$fixed[,1],rep(NA, 4)),
+           "95% CI UB" = c(intervals(modFEST)$fixed[,3],rep(NA, 4)),
+           SE = c(diag(sqrt(summary(modFEST)$varFix)), rep(NA, 4)),
+           "p" = c("< .001", "< .001","< .001", "< .001", rep(NA, 4)),
+           "Random effects" = c(rep(NA, 4), 
+                                paste0("Effect variance = ", round(as.numeric(VarCorr(modFEST))[6], 3), ", n = ", nrow(datMeta)),
+                                paste0("Article variance = ", round(as.numeric(VarCorr(modFEST))[4], 3), ", n = ",length(unique(datMeta$article))),
+                                paste0("Journal variance = ", round(as.numeric(VarCorr(modFEST))[2], 3), ", n = ", length(unique(datMeta$journal))),
+                                paste0("QE(", nrow(datMeta) - 1, ") = ", round(sum(residuals(modFEST, type="pearson")^2),2), 
+                                       ", p = < .001") 
+                                ))
+)
+```
+
+Including fixed effects for statistic type (i.e., a dummy coded variable for r and t tests, leaving F tests as the comparison group) lead to a negligible change in the estimated change over time (with the estimated change per year increasing by `r fixef(modFEST)[2] - fixef( mod)[2]`), but there were small but noticeable effects for effect size type (for t, $\gamma_2$ = `r fixef(modFEST)[4]`, 95% CI [`r intervals(modFEST)$fixed[4,c(1,3)]`], and for r $\gamma_3$ = `r fixef(modFEST)[3]`, 95% CI [`r intervals(modFEST)$fixed[3,c(1,3)]`]), with F as the comparison or baseline group (with an intercept of `r fixef(modFEST)[1]`, 95% CI [`r intervals(modFEST)$fixed[1,c(1,3)]`]))).
+
+##### Allowing slopes to vary by effect size type
+
+Another question we investigated is whether the change in effect sizes over time may differ for the different types of statistical test reported. In order to examine this possibility we included both main fixed effects for statistical test type and interactions between year and test statistic type.
+
+$ES_j = \gamma_0 + \gamma_1Year + \gamma_2t_{dummy} + \gamma_3r_{dummy} + \gamma_4t_{dummy} \times Year + \gamma_5r_{dummy}\times Year  + u_{id} + u_{article} + u_{journal} + e_{j}$
+
+```{r}
+# modFESTSlopes <- lme(z ~ 1 + centeredYear + centeredYear*Statistic + Statistic , random = ~ 1 |  journal / article / id,  weights = varFixed(~SEz^2), data = datMeta, control = lmeControl(sigma = 1, apVar = T))
+# write_rds(modFESTSlopes, "data/modFESTSlopes")
+modFESTSlopes <- read_rds("data/modFESTSlopes")
+
+```
+
+
+```{r}
+kable(
+data_frame(" " = c("Intercept", "Year", "r" ,"t" , "r * year", "t * year", rep(NA,4)), 
+  Estimate = c(modFESTSlopes$coefficients$fixed, rep(NA,4)), 
+           "95% CI LB" = c(intervals(modFESTSlopes)$fixed[,1],rep(NA, 4)),
+           "95% CI UB" = c(intervals(modFESTSlopes)$fixed[,3],rep(NA, 4)),
+           SE = c(diag(sqrt(summary(modFESTSlopes)$varFix)), rep(NA, 4)),
+           "p" = c("< .001", "< .001","< .001", "< .001", 0.336, 0.939, rep(NA, 4)),
+           "Random effects" = c(rep(NA, 6), 
+                                paste0("Effect variance = ", round(as.numeric(VarCorr(modFESTSlopes))[6], 3), ", n = ", nrow(datMeta)),
+                                paste0("Article variance = ", round(as.numeric(VarCorr(modFESTSlopes))[4], 3), ", n = ",length(unique(datMeta$article))),
+                                paste0("Journal variance = ", round(as.numeric(VarCorr(modFESTSlopes))[2], 3), ", n = ", length(unique(datMeta$journal))),
+                                paste0("QE(", nrow(datMeta) - 1, ") = ", round(sum(residuals(modFESTSlopes, type="pearson")^2),2), 
+                                       ", p = < .001") 
+                                ))
+)
+```
+
+Allowing slopes to vary by statistic type (i.e., including an interaction between dummy coded binaries for r and t statistics) led to negligible estimated effects interaction effects. The interaction effect for correlations, $\gamma_3$, was `r fixef(modFESTSlopes)[5]`, 95% CI [`r intervals(modFESTSlopes)$fixed[5,c(1,3)]`]. The interaction effect for t statistics, $\gamma_4$, was `r fixef(modFESTSlopes)[6]`, 95% CI [`r intervals(modFESTSlopes)$fixed[6,c(1,3)]`]. $\gamma_1$,  which now represents the estimated change per year in effect sizes for F statistics, was estimated as `r fixef(modFESTSlopes)[2]`, 95% CI [`r intervals(modFESTSlopes)$fixed[6,c(1,3)]`]. This is only `r fixef(modFESTSlopes)[2] - fixef( mod)[2]` units more extreme than the $\gamma_1$ estimated when including main effects or interaction effects for test statistic types.
+
+##### Allowing slopes to vary by journal 
+
+An alternative approach to analyzing this data set is to allow the relationship between effect size and time to vary by journal. 
+
+$ES_j = \gamma_{0} + \gamma_{1}Year + u_{id} + u_{article} + u_{journal} + u_{jounral_2} \times Year + e_{j}$
+
+```{r}
+# datMeta$centeredYear <- datMeta$year - mean(datMeta$year)
+# slopesVByJ <- lme(z ~ 1 + centeredYear, random = list ( ~ 1 + centeredYear |  journal, ~ 1 | article , ~ 1 | id ),  weights = varFixed(~SEz^2), data = datMeta, control = lmeControl(sigma = 1, apVar = T))
+# write_rds(slopesVByJ, "data/slopesVByJ")
+slopesVByJ <- read_rds("data/slopesVByJ")
+
+```
+
+```{r}
+kable(
+data_frame(" " = c("Intercept", "Year",rep(NA,5)), 
+  Estimate = c(slopesVByJ$coefficients$fixed, rep(NA,5)), 
+           "95% CI LB" = c(intervals(slopesVByJ)$fixed[,1],rep(NA, 5)),
+           "95% CI UB" = c(intervals(slopesVByJ)$fixed[,3],rep(NA, 5)),
+           SE = c(diag(sqrt(summary(slopesVByJ)$varFix)), rep(NA, 5)),
+           "p" = c("< .001", "< .001", rep(NA, 5)),
+           "Random effects" = c(rep(NA, 2), 
+                                paste0("Effect variance = ", round(as.numeric(VarCorr(slopesVByJ))[7], 3), ", n = ", nrow(datMeta)),
+                                paste0("Article variance = ", round(as.numeric(VarCorr(slopesVByJ))[5], 3), ", n = ",length(unique(datMeta$article))),
+                                paste0("Journal variance = ", round(as.numeric(VarCorr(slopesVByJ))[2], 3), ", n = ", length(unique(datMeta$journal))),
+                                 paste0("Slope variance = ", round(as.numeric(VarCorr(slopesVByJ))[3], 3), ", n = ", length(unique(datMeta$journal))),
+                                paste0("QE(", nrow(datMeta) - 1, ") = ", round(sum(residuals(slopesVByJ, type="pearson")^2),2), 
+                                       ", p = < .001") 
+                                ))
+)
+```
+
+Including random slopes for journal lead to almost no change in the overall estimated change per year ($\gamma_1$ = 
+`r fixef(mod)[2]`, a change of just `r fixef(mod)[2] - fixef(slopesVByJ)[2]`), and a very small estimated slope variance  of `r options(digits=6, scipen = 5); round( intervals(slopesVByJ)$reStruc$journal[2,2]^2, 6)`, 95% CIs `r intervals(slopesVByJ)$reStruc$journal[2,c(1,3)]^2`. This suggests that the effect size change per year is relatively stable across journals, although the sampling plan used here (only including 5 APA journals), may limit the generalizability of these results outside of this sample.
