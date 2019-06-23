@@ -549,22 +549,22 @@ predsForPlot <-  data.frame(pred = transf.ztor(intervals(mod)$fixed[1,2] + (inte
 predsForPlot$ci.lb <- transf.ztor(intervals(mod)$fixed[1,1] + (intervals(mod)$fixed[2,1] * (1984:2014 - mean(datMeta$year))))
 predsForPlot$ci.ub <- transf.ztor(intervals(mod)$fixed[1,3] + (intervals(mod)$fixed[2,3] * (1984:2014 - mean(datMeta$year))))
 
-predsForPlot$year <- 1984:2014
 predsForPlot <- data.frame(predsForPlot)
+predsForPlot$year <- 1984:2014
 
  predsForPlotL <- predict(modLargest, 1984:2014 - mean(datMetaLargest$year), transf = transf.ztor)
- predsForPlotL$year <- 1984:2014
  predsForPlotL <- data.frame(predsForPlotL)
+  predsForPlotL$year <- 1984:2014
  
  predsForPlotF <- predict(modFirst, 1984:2014 - mean(datMetaFirst$year), transf = transf.ztor)
- predsForPlotF$year <- 1984:2014
  predsForPlotF <- data.frame(predsForPlotF)
+  predsForPlotF$year <- 1984:2014
 
 
 plotMod <- ggplot(data = datMeta, aes(y = r, x = year, group = year, colour = journal)) + geom_jitter(alpha = .03, width = .4, height = 0)+ ylab("Correlation coefficient") + xlab("Year") + guides(colour = guide_legend(override.aes = list(alpha = 1)))+ geom_line( data = predsForPlot, aes(x = year, y= ci.lb), inherit.aes = F, linetype = 2)+ geom_line( data = predsForPlot, aes(x = year, y= ci.ub), inherit.aes = F, linetype = 2) + geom_line(data = predsForPlot, aes(x = year, y = pred), inherit.aes = F) + #geom_ribbon( data = predsForPlot, aes(x = year, ymin = ci.lb, ymax = ci.ub), inherit.aes = F, alpha = .1) + 
   theme(legend.position="none") + ggtitle("All data")
 
-plotModLargest <- ggplot(data = datMetaLargest, aes(y = r, x = year, group = year, colour = journal))+ geom_jitter(alpha = .15, width = .4, height = 0)+ ylab("Correlation coefficient") + xlab("Year") + guides(colour = guide_legend(override.aes = list(alpha = 1)))+ geom_line( data = predsForPlotL, aes(x = year, y= ci.lb), inherit.aes = F, linetype = 2)+ geom_line( data = predsForPlotL, aes(x = year, y= ci.ub), inherit.aes = F, linetype = 2) + geom_line(data = predsForPlotL, aes(x = year, y = pred), inherit.aes = F) + # geom_ribbon( data = predsForPlotL, aes(x = year, ymin = ci.lb, ymax = ci.ub), inherit.aes = F, alpha = .1)+ 
+plotModLargest <- ggplot(data = datMetaLargest, aes(y = r, x = year, group = year, colour = journal))+ geom_jitter(alpha = .15, width = .4, height = 0)+ ylab("Correlation coefficient") + xlab("Year") + guides(colour = guide_legend(override.aes = list(alpha = 1)))+ geom_line( data = predsForPlotL, aes(x = year, y= ci.lb), inherit.aes = F, linetype = 2)+ geom_line( data = predsForPlotL, aes(x = year, y= ci.ub), inherit.aes = F, linetype = 2) + geom_line(data = predsForPlotL, aes(x = year, y = pred), inherit.aes = F) + # geom_ribbon( data = predsForPlotL, aes(x = year, ymin = ci.lb, ymax = ci.ub), inherit.aes = F, alpha = .1)+
   ggtitle("Largest reported effect")+ theme(legend.position="bottom")
 
 plotModFirst <- ggplot(data = datMetaFirst, aes(y = r, x = year, group = year, colour = journal))+ geom_jitter(alpha = .15, width = .4, height = 0)+ ylab("Correlation coefficient") + xlab("Year") + guides(colour = guide_legend(override.aes = list(alpha = 1)))+ geom_line( data = predsForPlotF, aes(x = year, y= ci.lb), inherit.aes = F, linetype = 2)+ geom_line( data = predsForPlotF, aes(x = year, y= ci.ub), inherit.aes = F, linetype = 2) + geom_line(data = predsForPlotF, aes(x = year, y = pred), inherit.aes = F) + # geom_ribbon( data = predsForPlotF, aes(x = year, ymin = ci.lb, ymax = ci.ub), inherit.aes = F, alpha = .1) + 
