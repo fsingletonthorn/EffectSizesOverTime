@@ -149,7 +149,7 @@ As a check on whether the exclusion of F statistics with $df_1$ of greater than 
 
 Additional exploratory analyses were performed to assess the robustness of these results to model specification changes. Including random slopes by journal, fixed effects for test statistic type, allowing the change over time to vary by test statistic type, or not accounting for the variance of each effect size estimates did not lead to any substantial difference in the results of this analysis. See supplementary materials two for a more in depth discussion of each of these models.  
 
-### Accounting for peripheral tests
+### Accounting for 'peripheral' tests
 
 Due to the large sample size included in this analysis, it was not feasible to manually label which statistical tests included were, for example, manipulation tests or randomization tests, and it is almost certain that a large proportion of those tests reported are in fact not tests of the main hypotheses of each paper. This means that any observed change in effect sizes could be driven by changes in reporting practices, such as an changing number of reported manipulation or randomization checks over time. In order to account for this issue, two main methods were used to attempt to identify the focal test of each article. (a) Multilevel mixed effects meta-regression was performed looking just at the first statistical test reported in each paper. (b) Multilevel mixed effects meta-regression was performed using just the largest effect size reported in each paper. For (b), in `r nRepLargest` cases where there were ties within papers for the largest effect size, the first of the two equal outcome size analyses was taken. 
 
@@ -386,6 +386,7 @@ Figure [trends by J]. A plot of the mean effect size reported in each journal by
 
 The proportion of t tests in this sample has increased over time, relative to F tests and correlations, see figure [effectByStat]. There are no obvious differences between the average reported effect size in each unit (mean $Fisher_z$ for correlations = `r mean(filter(datMeta, datMeta$Statistic == "r")$z)` , mean for F statistics = `r mean(filter(datMeta, datMeta$Statistic == "F")$z)`, mean for t statistics = `r mean(filter(datMeta, datMeta$Statistic == "t")$z)`), and the trend over time appears to be consistent among all sources of effect sizes (see figure [effectByStat]).
 
+
 The number of t, F and correlational statistical tests reported in APA style per article has increased considerably over time in this sample (i.e., of articles that reported at least one), from a mean of `r nPerArticlePre1991[2,2]` reported per article in 1985 - 1990, to a mean of `r nPerArticlePost2008[2,2]` from 2009 - 2013 (note that these averages only include articles with at least one reported statistical test). See figure [n tests] for a plot of the mean number of tests reported per article over time, and a plot of the number of articles reported in each journal included in this current analysis.
 
 ### Analysis Results
@@ -484,11 +485,11 @@ Io2First <- read_rds("data/Io2First.RDS")
 
 ```
 
-The multilevel meta-regression including estimates a $Z_{fisher}$ decrease per year of `r mod$coefficients$fixed[2]`, 95% CI [`r intervals(mod)$fixed[2,1]`, `r intervals(mod)$fixed[2,3]`]. Unsurprisingly given that articles likely report multiple statistical tests of different hypotheses in each article there is a large amount of unexplained effect size heterogeneity in effect sizes, `r niceModSum[6,6]`, $I^2$ = `r Io2` {Nakagawa, 2012 #1023}. This suggests that `r round(Io2)`% of residual variance in effect sizes is due to effect size heterogeneity (i.e., variance in the true effect size differences), while the remaining `r 100-round(Io2)`%  is attributable to sampling variance. More variance is attributable to the article and effect level than to the project ($\sigma^2_{article}$ = `r round(as.numeric(VarCorr(mod)[c(4)]), 3)`, $\sigma^2_{effect}$ = `r round(as.numeric(VarCorr(mod)[c(6)]), 3)`, compared to $\sigma^2_{journal}$ = `r round(as.numeric(VarCorr(mod)[c(2)]), 3)`), representing a very low interclass correlation (ICC) for the journal of  `r round(as.numeric(VarCorr(mod)[c(2)]) / sum(as.numeric(VarCorr(mod)[c(2,4,6)])), 3)`, and a moderate ICC for the article of `r round(as.numeric(VarCorr(mod)[c(4)]) / sum(as.numeric(VarCorr(mod)[c(2,4,6)])), 3)`.
+The multilevel meta-regression including estimates a $Z_{fisher}$ decrease per year of `r mod$coefficients$fixed[2]`, 95% CI [`r intervals(mod)$fixed[2,1]`, `r intervals(mod)$fixed[2,3]`]. Unsurprisingly given that articles likely report multiple statistical tests of different hypotheses in each article there is a large amount of unexplained effect size heterogeneity in effect sizes, `r niceModSum[6,6]`, $I^2$ = `r Io2` {Nakagawa, 2012 #1023}. This suggests that `r round(Io2)`% of residual variance in effect sizes is due to effect size heterogeneity (i.e., variance in the true effect size differences), while the remaining `r 100-round(Io2)`%  is attributable to sampling variance. More variance is attributable to the article and effect level than to the project ($\sigma_{article}$ = `r round(as.numeric(VarCorr(mod)[c(11)]), 3)`, 95% CI [`r intervals(mod)$reStruct$journal[c(1,3)]`], , $\sigma_{effect}$ = `r round(as.numeric(VarCorr(mod)[c(13)]), 3)`, 95% CI [`r intervals(mod)$reStruct$article[c(1,3)]`], 
+compared to $\sigma^2_{journal}$ = `r round(as.numeric(VarCorr(mod)[c(9)]), 3)`, 95% CI [`r intervals(mod)$reStruct$id[c(1,3)]`]), representing a very low interclass correlation (ICC) for the journal of  `r round(as.numeric(VarCorr(mod)[c(2)]) / sum(as.numeric(VarCorr(mod)[c(2,4,6)])), 3)`, and a moderate ICC for the article of `r round(as.numeric(VarCorr(mod)[c(4)]) / sum(as.numeric(VarCorr(mod)[c(2,4,6)])), 3)`. Because of the small number of journals included in this analysis, the journal level variance is not very precisely estimated.
 
 Table [nice MLME sum datMeta]. Multilevel meta-regression output including all data with valid standard errors. $n_{effects}$ = `r nrow(datMeta)`, $n_{articles}$ = `r length(unique(datMetaFirst$article))`.
 `r kable(niceModSum)`
-
 
 Including only the first reported statistical test in each paper provides similar results, suggesting a small decrease over time, with a `r modFirst$b[2]` (95% CI [`r modFirst$ci.lb[2]`, `r modFirst$ci.ub[2]`]) $Z_{fisher}$ estimated yearly change according to the model including only the first reported effect effects. The estimated $I^2$ value (`r round(Io2First,2)`) is functionally identical to those of the model including all data with valid SEs. Looking at the variance partitioning more variance is attributable to the article level than to the journal level ($\sigma^2_{article}$ = `r round(modFirst$sigma2[2], 3)`, compared to $\sigma^2_{journal}$ = `r round(modFirst$sigma2[1], 3)`), representing a low interclass correlation (ICC) for the journal of `r round(modFirst$sigma2[1] / sum(modFirst$sigma2), 3)`.
 
@@ -656,7 +657,6 @@ It also is possible to estimate fixed effects for each of the included statistic
 $ES_j = \gamma_0 + \gamma_1Year + \gamma_2t_{dummy} + \gamma_3r_{dummy} + u_{id} + u_{article} + u_{journal} + e_{j}$
 
 ```{r}
-# write_rds(modFEST, "data/modFEST")
 # modFEST <- lme(z ~ 1 + I(year - mean(year)) + Statistic, random = ~ 1 |  journal / article / id,  weights = varFixed(~SEz^2), data = datMeta, control = lmeControl(sigma = 1, apVar = T))
 # write_rds(modFEST, "data/modFEST")
 modFEST <- read_rds("data/modFEST")
