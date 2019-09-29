@@ -583,7 +583,7 @@ Overall, this analysis suggests that there was a decrease in the average size of
 
 ## Supplementary materials
 
-### 1. Conversions
+### Supplementary materials 1. Effect size conversions
 All statistical tests extracted were transformed into correlation coefficients as follows, using the methods reported in {Open Science Collaboration, 2015 #611}. 
 
 t statistics:
